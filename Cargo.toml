@@ -3,4 +3,5 @@ resolver = "3"
 members = [ "moqt-rs", "varint_core", "varint_derive","varintege-rs"]
 
 [workspace.dependencies]
+bytes = "1"
 snafu = "0.8.9"

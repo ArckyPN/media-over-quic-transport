@@ -15,6 +15,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "bytes"
+version = "1.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d71b6127be86fdcfddb610f7182ac57211d4b18a3e9c82eb2d17662f2227ad6a"
+
+[[package]]
 name = "funty"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -101,6 +107,10 @@ checksum = "f63a545481291138910575129486daeaf8ac54aee4387fe7906919f7830c7d9d"
 [[package]]
 name = "varint_core"
 version = "0.0.1"
+dependencies = [
+ "bitvec",
+ "bytes",
+]
 
 [[package]]
 name = "varint_derive"
@@ -109,18 +119,16 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
- "varintege-rs",
+ "varint_core",
 ]
 
 [[package]]
 name = "varintege-rs"
 version = "0.0.1"
 dependencies = [
- "bitvec",
- "proc-macro2",
- "quote",
  "snafu",
- "syn",
+ "varint_core",
+ "varint_derive",
 ]
 
 [[package]]

@@ -10,4 +10,11 @@ repository = "https://github.com/ArckyPN/media-over-quic-transport/tree/main/var
 license = "MIT"
 readme = "README.md"
 
+[features]
+moq = ["varint_core/moq"]
+
 [dependencies]
+snafu = { workspace = true }
+
+varint_core = { path = "../varint_core" }
+varint_derive = { path = "../varint_derive" }

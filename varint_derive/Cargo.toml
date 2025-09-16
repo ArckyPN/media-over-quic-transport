@@ -11,3 +11,11 @@ license = "MIT"
 readme = "README.md"
 
 [dependencies]
+proc-macro2 = "1"
+quote = "1"
+syn = { version = "2" }
+
+varint_core = { path = "../varint_core" }
+
+[lib]
+proc-macro = true
