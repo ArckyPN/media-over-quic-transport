@@ -6,6 +6,7 @@ categories = ["web-programming", "data-structures"]
 keywords = ["QUIC", "VarInt", "derive", "MOQT"]
 description = "VarInt derive implementation"
 homepage = "https://github.com/ArckyPN/media-over-quic-transport/"
+repository = "https://github.com/ArckyPN/media-over-quic-transport/tree/main/varintege-rs"
 license = "MIT"
 readme = "README.md"
 
