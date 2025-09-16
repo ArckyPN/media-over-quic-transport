@@ -1,0 +1,13 @@
+[package]
+name = "varint_core"
+version = "0.0.1"
+edition = "2024"
+categories = ["web-programming", "data-structures"]
+keywords = ["QUIC", "VarInt", "derive", "MOQT"]
+description = "VarInt core types"
+homepage = "https://github.com/ArckyPN/media-over-quic-transport/"
+repository = "https://github.com/ArckyPN/media-over-quic-transport/tree/main/varint_core"
+license = "MIT"
+readme = "README.md"
+
+[dependencies]
