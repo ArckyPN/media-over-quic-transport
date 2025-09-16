@@ -1,3 +1,3 @@
 [workspace]
 resolver = "3"
-members = [ "varint_derive","varintege-rs"]
+members = [ "moqt-rs", "varint_derive","varintege-rs"]

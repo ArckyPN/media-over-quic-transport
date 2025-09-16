@@ -1,0 +1,13 @@
+[package]
+name = "moqt-rs"
+version = "0.0.1"
+edition = "2024"
+categories = ["web-programming", "data-structures"]
+keywords = ["QUIC", "WebTransport", "MOQT"]
+description = "VarInt derive implementation"
+homepage = "https://github.com/ArckyPN/media-over-quic-transport/"
+repository = "https://github.com/ArckyPN/media-over-quic-transport/tree/main/moqt-rs"
+license = "MIT"
+readme = "README.md"
+
+[dependencies]
