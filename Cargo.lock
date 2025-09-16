@@ -3,5 +3,9 @@
 version = 4
 
 [[package]]
+name = "varint_derive"
+version = "0.0.1"
+
+[[package]]
 name = "varintege-rs"
 version = "0.0.1"
