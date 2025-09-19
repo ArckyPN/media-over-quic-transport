@@ -1,6 +1,7 @@
 use std::fmt::{Debug, Display};
 
 use bitvec::prelude::*;
+use funty::{AtMost32, Integral, Unsigned};
 use snafu::{ResultExt, Snafu};
 
 use crate::{
@@ -13,7 +14,6 @@ const MAX_U14: u64 = (2 << 13) - 1;
 const MAX_U30: u64 = (2 << 29) - 1;
 const MAX_U62: u64 = (2 << 61) - 1;
 
-// x (i)
 /// This Struct represents the primary
 /// VarInt type of this crate. In the QUIC
 /// and MOQT RFCs they are denoted by `x(i)`.
@@ -25,7 +25,7 @@ const MAX_U62: u64 = (2 << 61) - 1;
 /// - `0b01`: next 14 bits are the number
 /// - `0b10`: next 30 bits are the number
 /// - `0b11`: next 62 bits are the number
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct Number {
     data: BitVec<u8>,
 }
@@ -33,30 +33,59 @@ pub struct Number {
 impl Number {
     /// Creates a new VarInt.
     ///
-    /// This function only accept `u32` to provide
-    /// and infallible constructor method.
+    /// This function only accept `u8`, `u16`
+    /// and `u32` to provide and infallible
+    /// constructor method.
     ///
     /// # Example
     ///
     /// ```
     /// # use varint_core::Number;
-    /// let v = Number::new(123);
+    /// let v = Number::new(123u32);
     /// assert_eq!(v, 123);
     /// ```
-    pub fn new(v: u32) -> Self {
+    pub fn new<I>(v: I) -> Self
+    where
+        I: Unsigned + AtMost32,
+    {
         let mut this = Self::default();
-        this.set_value(v.into()).expect("value will fit");
+        this.set_value(v).expect("value will fit");
         this
+    }
+
+    /// Tries to construct a new VarInt from any
+    /// unsigned integer.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use varint_core::Number;
+    /// let v = Number::try_new(123u64).unwrap();
+    /// assert_eq!(v, 123);
+    /// ```
+    pub fn try_new<I>(v: I) -> Result<Self, NumberError>
+    where
+        I: Unsigned,
+    {
+        let mut this = Self::default();
+        this.set_value(v)?;
+        Ok(this)
     }
 
     /// Returns the value of the VarInt.
     ///
     /// ```
     /// # use varint_core::Number;
-    /// let v = Number::new(123);
-    /// assert_eq!(v.value(), 123);
+    /// let v = Number::new(123u32);
+    /// assert_eq!(v.value::<u32>(), 123);
     /// ```
-    pub fn value(&self) -> u64 {
+    ///
+    /// Tip: using `value::<u64>()` will
+    /// ensure to always get the full value.
+    pub fn value<I>(&self) -> I
+    where
+        I: Unsigned,
+    {
         self.data.load_be()
     }
 
@@ -67,7 +96,7 @@ impl Number {
     /// ```
     /// # use varint_core::Number;
     /// let mut v = Number::default();
-    /// v.set_value(15).unwrap();
+    /// v.set_value(15u8).unwrap();
     /// assert_eq!(v, 15);
     /// ```
     ///
@@ -84,11 +113,17 @@ impl Number {
     /// let err = v.set_value(u64::MAX);
     /// assert!(err.is_err());
     /// ```
-    pub fn set_value(&mut self, v: u64) -> Result<&mut Self, NumberTooLarge> {
-        snafu::ensure!(v < MAX_U62, NumberTooLargeSnafu { num: v });
+    pub fn set_value<I>(&mut self, v: I) -> Result<&mut Self, NumberError>
+    where
+        I: Unsigned,
+    {
+        snafu::ensure!(
+            v.as_u128() <= (MAX_U62 as u128),
+            TooLargeSnafu { num: v.as_u128() }
+        );
 
         let len = super::num_bits(v);
-        self.data.resize(len, false);
+        self.data.resize(len as usize, false);
         self.data.store_be(v);
 
         Ok(self)
@@ -105,15 +140,16 @@ impl Default for Number {
 
 impl Display for Number {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.value())
+        write!(f, "{}", self.value::<u64>())
     }
 }
 
 impl Debug for Number {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let v = self.value::<u64>();
         f.debug_struct("VarInt")
-            .field("value", &self.value())
-            .field("num_bits", &super::num_bits(self.value()))
+            .field("value", &v)
+            .field("num_bits", &super::num_bits(v))
             .field("inner", &self.data)
             .finish()
     }
@@ -128,22 +164,16 @@ pub enum NumberError {
     WriterError {
         source: WriterError,
     },
-
-    /// empty buffer given to [decode](crate::VarInt::decode)
-    #[snafu(display("unable to decode data from empty buffer"))]
-    NoData,
     /// tried to create a VarInt with a too large number
     #[snafu(display("number >{num}< is too large"))]
     TooLarge {
-        num: u64,
-        source: NumberTooLarge,
+        num: u128,
     },
 }
 
 impl VarInt for Number {
     type Error = NumberError;
-    type Item = Self;
-    fn decode<R>(reader: &mut R) -> Result<Self::Item, Self::Error>
+    fn decode<R>(reader: &mut R) -> Result<Self, Self::Error>
     where
         R: crate::Reader,
     {
@@ -187,7 +217,7 @@ impl VarInt for Number {
 
         // construct the VarInt
         let mut v = Self::default();
-        v.set_value(num).context(TooLargeSnafu { num })?;
+        v.set_value(num)?;
         Ok(v)
     }
 
@@ -195,7 +225,7 @@ impl VarInt for Number {
     where
         W: crate::Writer,
     {
-        let value = self.value();
+        let value = self.value::<u64>();
         let buf = if value <= MAX_U6 {
             (value as u8).to_be_bytes().to_vec()
         } else if value <= MAX_U14 {
@@ -212,83 +242,158 @@ impl VarInt for Number {
 
 macro_rules! impl_partial_eq {
     ( $($prim:ty),+ $(,)? ) => {
+        // u64 is largest type Number can be
+        // forcing
         $(
             impl PartialEq<$prim> for Number {
                 fn eq(&self, other: &$prim) -> bool {
-                    *other as u64 == self.value()
+                    if *other < (0 as $prim) { return false; }
+                    if (*other as u64) > MAX_U62 { return false; }
+                    // now that it is verified that other is
+                    // not negative or larger than allowed
+                    // it is permissible to case both to u64
+                    *other as u64 == self.value::<u64>()
                 }
             }
             impl PartialEq<Number> for $prim {
                 fn eq(&self, other: &Number) -> bool {
-                    *self as u64 == other.value()
+                    // flip the comparison to make use of
+                    // the partial eq above
+                    other == self
                 }
             }
         )+
     };
 }
 impl_partial_eq!(
-    u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize, bool
+    u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize
 );
 
-// TODO checks these again
-macro_rules! impl_from {
-    ( $typ:ty ; $($prim:ty),+ $(,)? ) => {
+macro_rules! impl_partial_ord    {
+    ( $($prim:ty),+ $(,)? ) => {
         $(
-            impl From<$prim> for $typ {
-                fn from(value: $prim) -> Self {
-                    let mut v = Self::default();
-                    v.set_value(value.into())
-                        .expect("value cannot be larger than the maximum");
-                    v
+            impl PartialOrd<$prim> for Number {
+                fn partial_cmp(&self, other: &$prim) -> Option<std::cmp::Ordering> {
+                    if *other < (0 as $prim) {
+                        return Some(std::cmp::Ordering::Less);
+                    }
+                    // other is positive -> casting to u64 is fine
+                    let other = *other as u64;
+                    if self.value::<u64>() > other {
+                        Some(std::cmp::Ordering::Greater)
+                    } else if self.value::<u64>() < other {
+                        Some(std::cmp::Ordering::Less)
+                    } else {
+                        Some(std::cmp::Ordering::Equal)
+                    }
+                }
+            }
+            impl PartialOrd<Number> for $prim {
+                fn partial_cmp(&self, other: &Number) -> Option<std::cmp::Ordering> {
+                    if *self < (0 as $prim) {
+                        return Some(std::cmp::Ordering::Less);
+                    }
+                    // self is positive -> casting to u64 is fine
+                    if (*self as u64) > other.value::<u64>() {
+                        Some(std::cmp::Ordering::Greater)
+                    } else if (*self as u64) < other.value::<u64>() {
+                        Some(std::cmp::Ordering::Less)
+                    } else {
+                        Some(std::cmp::Ordering::Equal)
+                    }
                 }
             }
         )+
     };
 }
-impl_from!(Number; u8, u16, u32);
+impl_partial_ord!(
+    u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize
+);
+
+macro_rules! impl_from {
+    ( $($prim:ty),+ $(,)? ) => {
+        $(
+            impl From<$prim> for Number {
+                fn from(value: $prim) -> Self {
+                    Self::new(value)
+                }
+            }
+        )+
+    };
+}
+impl_from!(u8, u16, u32);
+
+macro_rules! impl_from_number {
+    ( $($prim:ty),+ $(,)? ) => {
+        $(
+            impl From<Number> for $prim {
+                fn from(value: Number) -> Self {
+                    value.value()
+                }
+            }
+        )+
+    };
+}
+impl_from_number!(u64, u128);
 
 macro_rules! impl_try_from {
-    ( $typ:ty ; $($prim:ty),+ $(,)? ) => {
+    ( $($prim:ty),+ $(,)? ) => {
         $(
-            impl TryFrom<$prim> for $typ {
-                type Error = ConversionError;
+            impl TryFrom<$prim> for Number {
+                type Error = ConversionError<$prim>;
                 fn try_from(value: $prim) -> Result<Self, Self::Error> {
-                    let value = if value.lt(&value) {
-                        return Err(ConversionError::TooLargeUnsigned { num: value as u128 });
-                    } else {
-                        value as i128
-                    };
-                    snafu::ensure!(value >= 0, NegativeSnafu { num: value });
-
-                    let mut v = Number::default();
-                    v.set_value(value as u64)
-                        .context(TooLargeTODOSnafu { num: value })?;
-                    Ok(v)
+                    snafu::ensure!(value >= (0 as $prim), IsNegativeSnafu { value });
+                    // value is verified to be positive => casting
+                    // to u64 is permissible
+                    Number::try_new(value as u64).context(InvalidSnafu { value })
                 }
             }
         )+
     };
 }
-impl_try_from!(Number; u64, u128, usize, i8, i16, i32, i64, i128, isize);
+impl_try_from!(u64, u128, usize, i8, i16, i32, i64, i128, isize);
 
-impl From<Number> for u64 {
-    fn from(value: Number) -> Self {
-        value.value()
-    }
+macro_rules! impl_try_from_number {
+    ( $($prim:ty),+ $(,)? ) => {
+        $(
+            impl TryFrom<Number> for $prim {
+                type Error = ConversionError<$prim>;
+                fn try_from(value: Number) -> Result<Self, Self::Error> {
+                    snafu::ensure!(value <= <$prim>::MAX, UnFitSnafu { value, max: <$prim>::MAX });
+
+                    Ok(value.value::<u64>() as $prim)
+                }
+            }
+        )+
+    };
 }
+impl_try_from_number!(u8, u16, u32, usize, i8, i16, i32, i64, i128, isize);
 
+/// Error when casting to and from [Number] to primitive types.
 #[derive(Debug, Snafu, PartialEq, Clone)]
-pub enum ConversionError {
-    Negative { num: i128 },
-    TooLargeTODO { num: i128, source: NumberTooLarge },
-    TooLargeUnsigned { num: u128 },
+pub enum ConversionError<I>
+where
+    I: Integral,
+{
+    /// Error when trying to create a [Number] from a negative integer
+    #[snafu(display("VarInt Number cannot be negative, trying >{value}<"))]
+    IsNegative { value: I },
+    /// Error when the number was too large
+    #[snafu(display("failed to create a VarInt Number from >{value}<"))]
+    Invalid { value: I, source: NumberError },
+    /// Error when trying to cast a Number into a too small type
+    #[snafu(display("Number >{value}< does not fit into the given type, max value: >{max}<"))]
+    UnFit { value: Number, max: I },
 }
 
 /// Number is larger than the maximum possible value of an VarInt
 #[derive(Debug, Snafu, PartialEq, Clone)]
 #[snafu(display("number >{num}< is too large to be an VarInt, max: {MAX_U62}"))]
-pub struct NumberTooLarge {
-    pub(crate) num: u64,
+pub struct NumberTooLarge<I>
+where
+    I: Integral,
+{
+    pub(crate) num: I,
 }
 
 #[cfg(test)]
@@ -296,6 +401,154 @@ mod tests {
     use crate::{ReferenceReader, ReferenceWriter, Writer};
 
     use super::*;
+
+    #[test]
+    fn set_value_test() {
+        let mut base = Number::default();
+
+        base.set_value(8u8).unwrap();
+        assert_eq!(base, 8);
+
+        base.set_value(700u16).unwrap();
+        assert_eq!(base, 700);
+
+        base.set_value(2_123_789u32).unwrap();
+        assert_eq!(base, 2_123_789);
+
+        base.set_value(MAX_U62).unwrap();
+        assert_eq!(base, MAX_U62);
+
+        let err = base.set_value(MAX_U62 + 1).unwrap_err();
+        assert_eq!(
+            err,
+            NumberError::TooLarge {
+                num: (MAX_U62 + 1) as u128
+            }
+        );
+    }
+
+    #[test]
+    fn new_test() {
+        let valid = Number::new(15u8);
+        assert_eq!(valid.value::<u8>(), 15u8);
+        assert_eq!(valid.data.load_be::<u16>(), 15);
+
+        let valid = Number::new(537u16);
+        assert_eq!(valid.data.load_be::<u16>(), 537);
+
+        let valid = Number::new(2_123_789u32);
+        assert_eq!(valid.data.load_be::<u32>(), 2_123_789);
+    }
+
+    #[test]
+    fn try_new_test() {
+        let valid = Number::try_new(15u8).unwrap();
+        assert_eq!(valid, 15);
+
+        let valid = Number::try_new(9_000_000_000u64).unwrap();
+        assert_eq!(valid, 9_000_000_000u64);
+
+        let valid = Number::try_new(MAX_U62).unwrap();
+        assert_eq!(valid, MAX_U62);
+
+        let valid = Number::try_new(MAX_U62 + 1).unwrap_err();
+        assert_eq!(
+            valid,
+            NumberError::TooLarge {
+                num: (MAX_U62 + 1) as u128
+            }
+        );
+    }
+
+    #[test]
+    fn eq_test() {
+        assert_eq!(Number::new(123u8), 123);
+        assert_eq!(Number::new(537u16), 537);
+        assert_eq!(Number::new(2_123_789u32), 2_123_789);
+
+        assert_ne!(Number::new(123u8), -5);
+        assert_ne!(Number::new(234u8), i128::MIN);
+        assert_ne!(Number::new(123u16), i64::MAX);
+    }
+
+    #[test]
+    fn ord_test() {
+        let num = Number::new(123u8);
+        assert!(num > 50u8);
+        assert!(50u64 < num);
+        assert!(num > 13i8);
+        assert!(num < 250u16);
+        assert!(250u16 > num);
+        assert!(num == 123u64);
+        assert!(123u8 == num);
+    }
+
+    #[test]
+    fn default_test() {
+        assert_eq!(Number::default(), 0);
+    }
+
+    #[test]
+    fn from_test() {
+        let num = Number::from(40u8);
+        assert_eq!(num, 40);
+        assert_eq!(u64::from(num.clone()), 40);
+        assert_eq!(u64::from(num), 40);
+
+        let num = Number::from(537u16);
+        assert_eq!(num, 537);
+
+        let num = Number::from(2_223_789_999u32);
+        assert_eq!(num, 2_223_789_999u64);
+        assert_eq!(
+            i32::try_from(num.clone()).unwrap_err(),
+            ConversionError::UnFit {
+                value: num,
+                max: i32::MAX
+            }
+        );
+    }
+
+    #[test]
+    fn try_from_test() {
+        let valid = Number::try_from(9_000_000_000u64).unwrap();
+        assert_eq!(valid, 9_000_000_000u64);
+
+        let valid = Number::try_from(MAX_U62).unwrap();
+        assert_eq!(valid, MAX_U62);
+
+        let invalid = Number::try_from(MAX_U62 + 1).unwrap_err();
+        assert_eq!(
+            invalid,
+            ConversionError::Invalid {
+                value: MAX_U62 + 1,
+                source: NumberError::TooLarge {
+                    num: (MAX_U62 + 1) as u128
+                }
+            }
+        );
+
+        let invalid = Number::try_from(-1).unwrap_err();
+        assert_eq!(invalid, ConversionError::IsNegative { value: -1 });
+
+        let num = Number::new(537u16);
+        assert_eq!(
+            u8::try_from(num.clone()).unwrap_err(),
+            ConversionError::UnFit {
+                value: num,
+                max: u8::MAX
+            }
+        );
+
+        let num = Number::new(2_223_789_999u32);
+        assert_eq!(
+            i32::try_from(num.clone()).unwrap_err(),
+            ConversionError::UnFit {
+                value: num,
+                max: i32::MAX
+            }
+        );
+    }
 
     const VALID_U6_BUF: &[u8; 1] = &[0b0000_1000];
     const VALID_U14_BUF: &[u8; 2] = &[0b0100_1000, 0b0000_0000];
@@ -315,7 +568,6 @@ mod tests {
     const VALID_NUM_U30: u32 = 524_288;
     const VALID_NUM_U62: u64 = 2_251_799_813_685_248;
 
-    // TODO once Reader and Writer are working
     #[test]
     fn decode_test() {
         let buf = [
