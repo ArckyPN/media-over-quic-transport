@@ -1,11 +1,11 @@
 use std::fmt::{Debug, Display};
 
-use bitvec::prelude::*;
 use funty::{AtMost32, Integral, Unsigned};
 use snafu::{ResultExt, Snafu};
 
 use crate::{
     VarInt,
+    bitstore::{self, BitStore},
     io::{reader::ReaderError, writer::WriterError},
 };
 
@@ -27,7 +27,7 @@ const MAX_U62: u64 = (2 << 61) - 1;
 /// - `0b11`: next 62 bits are the number
 #[derive(Clone, Default, PartialEq, PartialOrd)]
 pub struct Number {
-    data: BitVec<u8, Msb0>,
+    data: BitStore<6, 62>,
 }
 
 impl Number {
@@ -60,7 +60,7 @@ impl Number {
     ///
     /// ```
     /// # use varint_core::Number;
-    /// let v = Number::try_new(123u64).unwrap();
+    /// let v = Number::try_new(123u64);
     /// assert_eq!(v, 123);
     /// ```
     pub fn try_new<U>(v: U) -> Result<Self, NumberError<U>>
@@ -86,10 +86,7 @@ impl Number {
     where
         U: Unsigned,
     {
-        if self.data.is_empty() {
-            return U::try_from(0).unwrap_or_default();
-        }
-        self.data.load_be()
+        self.data.number()
     }
 
     /// Set the inner value to `v`.
@@ -99,7 +96,7 @@ impl Number {
     /// ```
     /// # use varint_core::Number;
     /// let mut v = Number::default();
-    /// v.set_number(15u8).unwrap();
+    /// v.set_number(15u8);
     /// assert_eq!(v, 15);
     /// ```
     ///
@@ -122,9 +119,14 @@ impl Number {
     {
         snafu::ensure!(v.as_u128() <= (MAX_U62 as u128), TooLargeSnafu { num: v });
 
-        let len = super::num_bits(v);
-        self.data.resize(len, false);
-        self.data.store_be(v);
+        let len = match v {
+            x if x.as_u64() <= MAX_U6 => 6,
+            x if x.as_u64() <= MAX_U14 => 14,
+            x if x.as_u64() <= MAX_U30 => 30,
+            x if x.as_u64() <= MAX_U62 => 62,
+            _ => unreachable!("number cannot be larger than (2 << 61) - 1"),
+        };
+        self.data.set_number(v, Some(len)).context(BitStoreSnafu)?;
 
         Ok(self)
     }
@@ -165,42 +167,43 @@ impl VarInt for Number {
         // start of the number
         let byte = byte & 0b0011_1111;
 
-        let (num, bits) = match size {
-            0b00 => (byte as u64, 8),
+        let mut vec = vec![byte];
+        let bits = match size {
+            0b00 => 6,
             0b01 => {
                 // one more byte needed
-                let tail = reader.read_bytes(1).context(ReaderSnafu)?[0];
-
-                (u16::from_be_bytes([byte, tail]) as u64, 16)
+                let ext = reader.read_bytes(1).context(ReaderSnafu)?;
+                vec.extend_from_slice(&ext);
+                14
             }
             0b10 => {
                 // three more byte needed
-                let tail = reader.read_bytes(3).context(ReaderSnafu)?;
-                let mut buf = vec![byte];
-                buf.append(&mut tail.into());
-
-                (
-                    u32::from_be_bytes(buf.try_into().expect("buf has len 4")) as u64,
-                    32,
-                )
+                let ext = reader.read_bytes(3).context(ReaderSnafu)?;
+                vec.extend_from_slice(&ext);
+                30
             }
             0b11 => {
                 // seven more byte needed
-                let tail = reader.read_bytes(7).context(ReaderSnafu)?;
-                let mut buf = vec![byte];
-                buf.append(&mut tail.into());
-
-                (
-                    u64::from_be_bytes(buf.try_into().expect("buf has len 8")),
-                    64,
-                )
+                let ext = reader.read_bytes(7).context(ReaderSnafu)?;
+                vec.extend_from_slice(&ext);
+                62
             }
             _ => unreachable!("impossible size"),
         };
 
+        // shift left by 2 to account for the 2 size bits
+        let len = vec.len();
+        for i in 0..len {
+            vec[i] <<= 2;
+            if i == len - 1 {
+                continue;
+            }
+            vec[i] += vec[i + 1] >> 6;
+        }
+
         // construct the VarInt
         let mut v = Self::default();
-        v.set_number(num)?;
+        v.data.set_bits(&vec, bits).context(BitStoreSnafu)?;
         Ok((v, bits))
     }
 
@@ -234,6 +237,10 @@ where
     },
     WriterError {
         source: WriterError,
+    },
+    #[snafu(display("unable to store"))]
+    BitStoreError {
+        source: bitstore::Error,
     },
     /// tried to create a VarInt with a too large number
     #[snafu(display("number >{num}< is too large"))]
@@ -390,6 +397,8 @@ impl_try_from_number!(u8, u16, u32, usize, i8, i16, i32, i64, i128, isize);
 
 #[cfg(test)]
 mod tests {
+    use bytes::Bytes;
+
     use crate::{ReferenceReader, ReferenceWriter, Writer};
 
     use super::*;
@@ -403,48 +412,52 @@ mod tests {
     fn set_number_test() {
         let mut base = Number::default();
 
-        base.set_number(8u8).unwrap();
+        let valid = base.set_number(8u8);
+        assert!(valid.is_ok());
         assert_eq!(base, 8);
 
-        base.set_number(700u16).unwrap();
+        let valid = base.set_number(700u16);
+        assert!(valid.is_ok());
         assert_eq!(base, 700);
 
-        base.set_number(2_123_789u32).unwrap();
+        let valid = base.set_number(2_123_789u32);
+        assert!(valid.is_ok());
         assert_eq!(base, 2_123_789);
 
-        base.set_number(MAX_U62).unwrap();
+        let valid = base.set_number(MAX_U62);
+        assert!(valid.is_ok());
         assert_eq!(base, MAX_U62);
 
-        let err = base.set_number(MAX_U62 + 1).unwrap_err();
-        assert_eq!(err, NumberError::TooLarge { num: MAX_U62 + 1 });
+        let err = base.set_number(MAX_U62 + 1);
+        assert_eq!(err, Err(NumberError::TooLarge { num: MAX_U62 + 1 }));
     }
 
     #[test]
     fn new_test() {
         let valid = Number::new(15u8);
         assert_eq!(valid.number::<u8>(), 15u8);
-        assert_eq!(valid.data.load_be::<u16>(), 15);
+        assert_eq!(valid.data.number::<u16>(), 15);
 
         let valid = Number::new(537u16);
-        assert_eq!(valid.data.load_be::<u16>(), 537);
+        assert_eq!(valid.data.number::<u16>(), 537);
 
         let valid = Number::new(2_123_789u32);
-        assert_eq!(valid.data.load_be::<u32>(), 2_123_789);
+        assert_eq!(valid.data.number::<u32>(), 2_123_789);
     }
 
     #[test]
     fn try_new_test() {
-        let valid = Number::try_new(15u8).unwrap();
-        assert_eq!(valid, 15);
+        let valid = Number::try_new(15u8);
+        assert_eq!(valid, Ok(Number::new(15u16)));
 
-        let valid = Number::try_new(9_000_000_000u64).unwrap();
-        assert_eq!(valid, 9_000_000_000u64);
+        let valid = Number::try_new(9_000_000_000u64);
+        assert_eq!(valid.map(|n| n.number::<u64>()), Ok(9_000_000_000u64));
 
-        let valid = Number::try_new(MAX_U62).unwrap();
-        assert_eq!(valid, MAX_U62);
+        let valid = Number::try_new(MAX_U62);
+        assert_eq!(valid.map(|n| n.number::<u64>()), Ok(MAX_U62));
 
-        let valid = Number::try_new(MAX_U62 + 1).unwrap_err();
-        assert_eq!(valid, NumberError::TooLarge { num: MAX_U62 + 1 });
+        let valid = Number::try_new(MAX_U62 + 1);
+        assert_eq!(valid, Err(NumberError::TooLarge { num: MAX_U62 + 1 }));
     }
 
     #[test]
@@ -482,51 +495,59 @@ mod tests {
 
         let num = Number::from(2_223_789_999u32);
         assert_eq!(num, 2_223_789_999u64);
+
+        let invalid = i32::try_from(num.clone());
         assert_eq!(
-            i32::try_from(num.clone()).unwrap_err(),
-            ConversionError::UnFit {
+            invalid,
+            Err(ConversionError::UnFit {
                 value: num,
                 max: i32::MAX
-            }
+            })
         );
     }
 
     #[test]
     fn try_from_test() {
-        let valid = Number::try_from(9_000_000_000u64).unwrap();
+        let Ok(valid) = Number::try_from(9_000_000_000u64) else {
+            unreachable!("is valid u62 number")
+        };
         assert_eq!(valid, 9_000_000_000u64);
 
-        let valid = Number::try_from(MAX_U62).unwrap();
+        let Ok(valid) = Number::try_from(MAX_U62) else {
+            unreachable!("is valid u62 number")
+        };
         assert_eq!(valid, MAX_U62);
 
-        let invalid = Number::try_from(MAX_U62 + 1).unwrap_err();
+        let invalid = Number::try_from(MAX_U62 + 1);
         assert_eq!(
             invalid,
-            ConversionError::Invalid {
+            Err(ConversionError::Invalid {
                 value: MAX_U62 + 1,
                 source: NumberError::TooLarge { num: MAX_U62 + 1 }
-            }
+            })
         );
 
-        let invalid = Number::try_from(-1).unwrap_err();
-        assert_eq!(invalid, ConversionError::IsNegative { value: -1 });
+        let invalid = Number::try_from(-1);
+        assert_eq!(invalid, Err(ConversionError::IsNegative { value: -1 }));
 
         let num = Number::new(537u16);
+        let invalid = u8::try_from(num.clone());
         assert_eq!(
-            u8::try_from(num.clone()).unwrap_err(),
-            ConversionError::UnFit {
+            invalid,
+            Err(ConversionError::UnFit {
                 value: num,
                 max: u8::MAX
-            }
+            })
         );
 
         let num = Number::new(2_223_789_999u32);
+        let invalid = i32::try_from(num.clone());
         assert_eq!(
-            i32::try_from(num.clone()).unwrap_err(),
-            ConversionError::UnFit {
+            invalid,
+            Err(ConversionError::UnFit {
                 value: num,
                 max: i32::MAX
-            }
+            })
         );
     }
 
@@ -559,21 +580,20 @@ mod tests {
         .concat();
         let mut reader = ReferenceReader::new(&buf);
 
-        let (valid, bits) = Number::decode(&mut reader, None).unwrap();
-        assert_eq!(bits, 8);
-        assert_eq!(valid, VALID_NUM_U6);
+        let valid = Number::decode(&mut reader, None);
+        assert_eq!(valid, Ok((Number::from(VALID_NUM_U6), 6)));
 
-        let (valid, bits) = Number::decode(&mut reader, None).unwrap();
-        assert_eq!(valid, VALID_NUM_U14);
-        assert_eq!(bits, 16);
+        let valid = Number::decode(&mut reader, None);
+        assert_eq!(valid, Ok((Number::from(VALID_NUM_U14), 14)));
 
-        let (valid, bits) = Number::decode(&mut reader, None).unwrap();
-        assert_eq!(valid, VALID_NUM_U30);
-        assert_eq!(bits, 32);
+        let valid = Number::decode(&mut reader, None);
+        assert_eq!(valid, Ok((Number::from(VALID_NUM_U30), 30)));
 
-        let (valid, bits) = Number::decode(&mut reader, None).unwrap();
-        assert_eq!(valid, VALID_NUM_U62);
-        assert_eq!(bits, 64);
+        let valid = Number::decode(&mut reader, None);
+        let Ok(num) = Number::try_from(VALID_NUM_U62) else {
+            unreachable!("valid u62 number")
+        };
+        assert_eq!(valid, Ok((num, 62)));
     }
 
     #[test]
@@ -588,17 +608,24 @@ mod tests {
         let mut writer = ReferenceWriter::new();
 
         let num = Number::from(VALID_NUM_U6);
-        num.encode(&mut writer).unwrap();
+        let valid = num.encode(&mut writer);
+        assert_eq!(valid, Ok(()));
 
         let num = Number::from(VALID_NUM_U14);
-        num.encode(&mut writer).unwrap();
+        let valid = num.encode(&mut writer);
+        assert_eq!(valid, Ok(()));
 
         let num = Number::from(VALID_NUM_U30);
-        num.encode(&mut writer).unwrap();
+        let valid = num.encode(&mut writer);
+        assert_eq!(valid, Ok(()));
 
-        let num = Number::try_from(VALID_NUM_U62).unwrap();
-        num.encode(&mut writer).unwrap();
+        let Ok(num) = Number::try_from(VALID_NUM_U62) else {
+            unreachable!("valid u62 number")
+        };
+        let valid = num.encode(&mut writer);
+        assert_eq!(valid, Ok(()));
 
-        assert_eq!(writer.finish().unwrap(), buf);
+        let valid = writer.finish();
+        assert_eq!(valid, Ok(Bytes::from(buf)));
     }
 }
