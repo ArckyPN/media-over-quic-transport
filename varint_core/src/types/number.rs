@@ -204,7 +204,7 @@ impl VarInt for Number {
         // construct the VarInt
         let mut v = Self::default();
         v.data.set_bits(&vec, bits).context(BitStoreSnafu)?;
-        Ok((v, bits))
+        Ok((v, bits + 2))
     }
 
     fn encode<W>(&self, writer: &mut W) -> Result<(), Self::Error>
@@ -581,19 +581,16 @@ mod tests {
         let mut reader = ReferenceReader::new(&buf);
 
         let valid = Number::decode(&mut reader, None);
-        assert_eq!(valid, Ok((Number::from(VALID_NUM_U6), 6)));
+        assert_eq!(valid, Ok((Number::from(VALID_NUM_U6), 8)));
 
         let valid = Number::decode(&mut reader, None);
-        assert_eq!(valid, Ok((Number::from(VALID_NUM_U14), 14)));
+        assert_eq!(valid, Ok((Number::from(VALID_NUM_U14), 16)));
 
         let valid = Number::decode(&mut reader, None);
-        assert_eq!(valid, Ok((Number::from(VALID_NUM_U30), 30)));
+        assert_eq!(valid, Ok((Number::from(VALID_NUM_U30), 32)));
 
         let valid = Number::decode(&mut reader, None);
-        let Ok(num) = Number::try_from(VALID_NUM_U62) else {
-            unreachable!("valid u62 number")
-        };
-        assert_eq!(valid, Ok((num, 62)));
+        assert_eq!(valid, Ok((Number::try_from(VALID_NUM_U62).unwrap(), 64)));
     }
 
     #[test]
