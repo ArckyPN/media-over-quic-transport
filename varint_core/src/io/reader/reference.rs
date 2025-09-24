@@ -1,19 +1,18 @@
+use std::fmt::Debug;
+
 use bytes::{Buf, BytesMut};
 use snafu::ResultExt;
 
-use crate::{
-    Reader,
-    io::{PartialByteR, partial},
-};
+use crate::{Reader, io::PartialByte};
 
-use super::{ReaderError, ctx};
+use super::ctx;
 
 /// Reference Implementation of the [Reader](crate::Reader)
 /// trait.
-#[derive(Debug)]
+// #[derive(Debug)]
 pub struct ReferenceReader {
-    inner: BytesMut,
-    partial: PartialByteR,
+    inner: BytesMut, // TODO use Box<dyn BufMut> instead to be able to dynamically extend it without needing to construct new readers? or better to be able to pass in WebTransport stream directly
+    partial: PartialByte,
 }
 
 impl ReferenceReader {
@@ -21,25 +20,8 @@ impl ReferenceReader {
     pub fn new(buf: &[u8]) -> Self {
         Self {
             inner: buf.into(),
-            partial: PartialByteR::default(),
+            partial: PartialByte::default(),
         }
-    }
-
-    /// Shifts all bits to the right.
-    fn shift_partial_read(buf: &mut [u8], shift: u8) -> Result<(), ReaderError> {
-        snafu::ensure!(buf.len() > 1, ctx::InvalidShiftSnafu);
-        partial::valid_n(shift).context(ctx::PartialReadSnafu)?;
-
-        // loop over buf in reverse until the second element
-        for i in (1..buf.len()).rev() {
-            // add the shifted previous byte
-            buf[i] += PartialByteR::remove_bits(buf[i - 1], 8 - shift)
-                .context(ctx::PartialReadSnafu)?
-                << (8 - shift);
-            // shift the previous byte
-            buf[i - 1] >>= shift;
-        }
-        Ok(())
     }
 }
 
@@ -52,9 +34,9 @@ impl Reader for ReferenceReader {
         let bytes = n / 8;
         let bits = n % 8;
 
-        if self.partial.is_on_byte_boundary() {
-            let len = if bits != 0 { bytes + 1 } else { bytes };
+        let len = if bits != 0 { bytes + 1 } else { bytes };
 
+        if self.partial.is_on_byte_boundary() {
             let buf = self.read_bytes(len)?;
 
             if bytes > 0 && bits == 0 {
@@ -65,57 +47,49 @@ impl Reader for ReferenceReader {
                 // buf is len 1 => read partial byte from it
                 let bit = self
                     .partial
-                    .set(bits as u8, buf[0])
+                    .set_read(buf[0], bits as u8)
                     .context(ctx::PartialReadSnafu)?;
+
                 return Ok(vec![bit].into());
             }
 
-            // separate the partial byte
-            let (full, partial) = buf.split_at(buf.len() - 1);
+            // read the last byte partially
+            let (full, last) = buf.split_at(buf.len() - 1);
             let partial = self
                 .partial
-                .set(bits as u8, partial[0])
+                .set_read(last[0], bits as u8)
                 .context(ctx::PartialReadSnafu)?;
 
-            let mut res = [full.to_vec(), vec![partial]].concat();
-            Self::shift_partial_read(&mut res, 8 - bits as u8)?;
+            // append the last partial byte to the full bytes
+            let res = [full.to_vec(), vec![partial]].concat();
 
             return Ok(res.into());
         }
 
         // read with initialized partial
 
-        // read just from partial
-        if bytes == 0 && bits as u8 <= self.partial.remaining() {
-            let partial = self
-                .partial
-                .get(bits as u8)
-                .context(ctx::PartialReadSnafu)?;
+        let rem = self.partial.remaining();
+        if n <= rem as usize {
+            // only read from partial
+            let partial = self.partial.read(n as u8).context(ctx::PartialReadSnafu)?;
             return Ok(vec![partial].into());
         }
 
-        // read past stored partial
+        // read the remaining partial bits
+        let mut buf = [self.partial.read(rem).context(ctx::PartialReadSnafu)?].to_vec();
 
-        // read remaining partial
-        let rem = self.partial.remaining();
-        // TODO this looks weird
-        let buf = if n > rem as usize {
-            vec![self.partial.get(rem).context(ctx::PartialReadSnafu)?]
-        } else {
-            // seems to never reach this case
-            Default::default()
-        };
+        let tail = self.read_bits(n - rem as usize)?;
 
-        // back at a byte boundary
-        let rem = n - rem as usize;
-        let bits = rem % 8;
+        buf.extend_from_slice(&tail);
 
-        let res = self.read_bits(rem)?;
-        let mut res = [buf, res.to_vec()].concat();
-        Self::shift_partial_read(&mut res, 8 - bits as u8)?;
+        // shift tail to the left
+        for i in 1..buf.len() {
+            buf[i - 1] += buf[i] >> rem;
+            buf[i] <<= 8 - rem;
+        }
 
-        // first byte will be always 0, remove it
-        Ok(res[1..].to_vec().into())
+        // cut off last byte when shifted empty
+        Ok(buf[..len].to_vec().into())
     }
 
     fn read_bytes(&mut self, n: usize) -> Result<bytes::Bytes, super::ReaderError> {
@@ -134,8 +108,21 @@ impl Reader for ReferenceReader {
     }
 }
 
+impl Debug for ReferenceReader {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Reader")
+            .field("inner", &self.inner.to_vec())
+            .field("partial", &self.partial)
+            .finish()
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use bytes::Bytes;
+
+    use crate::io::reader::ReaderError;
+
     use super::*;
 
     const BUFFER: &[u8] = &[0b1111_0011, 0b0000_0010, 0b0100_1010];
@@ -145,64 +132,79 @@ mod tests {
     fn read_bits_test() {
         let mut reader = ReferenceReader::new(BUFFER);
 
-        let valid = reader.read_bits(0).unwrap();
-        assert!(valid.is_empty());
+        let valid = reader.read_bits(0);
+        assert_eq!(valid, Ok(Bytes::default()));
 
-        let valid = reader.read_bits(16).unwrap();
-        assert_eq!(valid, BUFFER[..2]);
+        let valid = reader.read_bits(16);
+        assert_eq!(valid, Ok(Bytes::from(&BUFFER[..2])));
 
-        let valid = reader.read_bits(4).unwrap();
-        assert_eq!(valid[0], BUFFER[2] >> 4);
+        let valid = reader.read_bits(4);
+        assert_eq!(valid, Ok(Bytes::from([0b0100_0000u8].as_slice())));
 
-        let valid = reader.read_bits(4).unwrap();
-        assert_eq!(valid[0], BUFFER[2] & 0b1111);
-
-        let mut reader = ReferenceReader::new(BUFFER);
-
-        let valid = reader.read_bits(3).unwrap();
-        assert_eq!(valid[0], BUFFER[0] >> 5);
-
-        let valid = reader.read_bits(2).unwrap();
-        assert_eq!(valid[0], (BUFFER[0] & 0b1_1111) >> 3);
-
-        let valid = reader.read_bits(5).unwrap();
-        assert_eq!(valid[0], 0b1100);
-
-        let valid = reader.read_bits(9).unwrap();
-        assert_eq!(valid[0], 0b10010);
-
-        let valid = reader.read_bits(5).unwrap();
-        assert_eq!(valid[0], BUFFER[2] & 0b1_1111);
+        let valid = reader.read_bits(4);
+        assert_eq!(valid, Ok(Bytes::from([0b1010_0000].as_slice())));
 
         let mut reader = ReferenceReader::new(BUFFER);
 
-        let valid = reader.read_bits(13).unwrap();
-        assert_eq!(valid, vec![0b1_1110, 0b0110_0000]);
+        let valid = reader.read_bits(3);
+        assert_eq!(valid, Ok(Bytes::from([0b1110_0000].as_slice())));
+
+        let valid = reader.read_bits(2);
+        assert_eq!(valid, Ok(Bytes::from([0b1000_0000].as_slice())));
+
+        let valid = reader.read_bits(5);
+        assert_eq!(valid, Ok(Bytes::from([0b0110_0000].as_slice())));
+
+        let valid = reader.read_bits(9);
+        assert_eq!(valid, Ok(Bytes::from([0b0000_1001, 0].as_slice())));
+
+        let valid = reader.read_bits(5);
+        assert_eq!(valid, Ok(Bytes::from([0b0101_0000].as_slice())));
+
+        let mut reader = ReferenceReader::new(BUFFER);
+
+        let valid = reader.read_bits(13);
+        assert_eq!(
+            valid,
+            Ok(Bytes::from([0b1111_0011, 0b0000_0000].as_slice()))
+        );
 
         let invalid = reader.read_bits(99999);
-        assert!(invalid.is_err());
+        assert_eq!(
+            invalid,
+            Err(ReaderError::MissingBytes {
+                needs: 100_000 / 8,
+                left: 1
+            })
+        );
     }
 
     #[test]
     fn read_bytes_test() {
         let mut reader = ReferenceReader::new(BUFFER);
 
-        let valid = reader.read_bytes(0).unwrap();
-        assert!(valid.is_empty());
+        let valid = reader.read_bytes(0);
+        assert_eq!(valid, Ok(Bytes::default()));
 
-        let valid = reader.read_bytes(1).unwrap();
-        assert_eq!(valid, BUFFER[..1]);
+        let valid = reader.read_bytes(1);
+        assert_eq!(valid, Ok(Bytes::from(&BUFFER[..1])));
 
-        let valid = reader.read_bytes(2).unwrap();
-        assert_eq!(valid, BUFFER[1..3]);
+        let valid = reader.read_bytes(2);
+        assert_eq!(valid, Ok(Bytes::from(&BUFFER[1..3])));
 
         let mut reader = ReferenceReader::new(BUFFER);
 
         let invalid = reader.read_bytes(9999);
-        assert!(invalid.is_err());
+        assert_eq!(
+            invalid,
+            Err(ReaderError::MissingBytes {
+                needs: 9999,
+                left: 3
+            })
+        );
 
-        reader.read_bits(4).unwrap();
+        let _ = reader.read_bits(4);
         let invalid = reader.read_bytes(1);
-        assert!(invalid.is_err());
+        assert_eq!(invalid, Err(ReaderError::LoosePartialByte));
     }
 }

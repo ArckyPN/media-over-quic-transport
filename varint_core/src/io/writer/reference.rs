@@ -1,26 +1,30 @@
+use std::fmt::Debug;
+
 use bytes::{BufMut, BytesMut};
 
-use crate::{Writer, io::PartialByteW};
+use crate::{Writer, io::PartialByte};
 
 use super::ctx;
 
 /// Reference Implementation of the [Writer](crate::Writer)
 /// trait.
-#[derive(Debug, Default, PartialEq)]
+#[derive(Default, PartialEq)]
 pub struct ReferenceWriter {
     inner: BytesMut,
-    partial: PartialByteW,
+    partial: PartialByte,
 }
 
 impl ReferenceWriter {
+    /// Construct a new empty Writer.
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Construct a new Writer with an initial capacity.
     pub fn with_capacity(cap: usize) -> Self {
         Self {
             inner: BytesMut::with_capacity(cap),
-            partial: PartialByteW::default(),
+            partial: PartialByte::default(),
         }
     }
 }
@@ -50,19 +54,19 @@ impl Writer for ReferenceWriter {
 
             if num_bits > 0 {
                 // set partial byte
-                self.partial.set(num_bits as u8, partial[0]);
+                self.partial.write(partial[0], num_bits as u8);
             }
             return self;
         }
 
         // write all full bytes, apart from the last one, which might be partial
         for byte in bits.iter().take(bits.len() - 1) {
-            if let Some(b) = self.partial.set(8, *byte) {
+            if let Some(b) = self.partial.write(*byte, 8) {
                 self.inner.put_u8(b);
             }
         }
         // partially write the final byte
-        if let Some(b) = self.partial.set(num_bits as u8, bits[bits.len() - 1]) {
+        if let Some(b) = self.partial.write(bits[bits.len() - 1], num_bits as u8) {
             self.inner.put_u8(b);
         }
 
@@ -79,8 +83,19 @@ impl Writer for ReferenceWriter {
     }
 }
 
+impl Debug for ReferenceWriter {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Writer")
+            .field("inner", &self.inner.to_vec())
+            .field("partial", &self.partial)
+            .finish()
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use bytes::Bytes;
+
     use super::*;
 
     const BUFFER: &[u8] = &[0b1111_0011, 0b0000_0010, 0b0100_1010];
@@ -102,7 +117,7 @@ mod tests {
             writer,
             ReferenceWriter {
                 inner: BytesMut::from(&BUFFER[..2]),
-                partial: PartialByteW { byte: 0, index: 0 }
+                partial: PartialByte { byte: 0, index: 0 }
             }
         );
 
@@ -112,7 +127,7 @@ mod tests {
             writer,
             ReferenceWriter {
                 inner: BytesMut::from(&BUFFER[..2]),
-                partial: PartialByteW {
+                partial: PartialByte {
                     byte: 0b0100_0000,
                     index: 4
                 }
@@ -129,6 +144,9 @@ mod tests {
             }
         );
 
+        let valid = writer.finish();
+        assert_eq!(valid, Ok(Bytes::from(BUFFER)));
+
         // start with a fresh writer
         let mut writer = ReferenceWriter::new();
 
@@ -138,7 +156,7 @@ mod tests {
             writer,
             ReferenceWriter {
                 inner: BytesMut::new(),
-                partial: PartialByteW {
+                partial: PartialByte {
                     byte: 0b1110_0000,
                     index: 3
                 }
@@ -152,7 +170,7 @@ mod tests {
             writer,
             ReferenceWriter {
                 inner: BytesMut::new(),
-                partial: PartialByteW {
+                partial: PartialByte {
                     byte: 0b1111_0000,
                     index: 5
                 }
@@ -167,7 +185,7 @@ mod tests {
             writer,
             ReferenceWriter {
                 inner: BytesMut::from(&BUFFER[..1]),
-                partial: PartialByteW {
+                partial: PartialByte {
                     byte: 0b0000_0000,
                     index: 2
                 }
@@ -182,7 +200,7 @@ mod tests {
             writer,
             ReferenceWriter {
                 inner: BytesMut::from(&BUFFER[..2]),
-                partial: PartialByteW {
+                partial: PartialByte {
                     byte: 0b0100_0000,
                     index: 3
                 }
@@ -205,13 +223,16 @@ mod tests {
     fn write_bytes_test() {
         let mut writer = ReferenceWriter::new();
 
-        writer.write_bytes(&BUFFER[..1]).unwrap();
+        let valid = writer.write_bytes(&BUFFER[..1]);
+        assert!(valid.is_ok());
         assert_eq!(writer.inner, BUFFER[..1]);
 
-        writer.write_bytes(&BUFFER[1..2]).unwrap();
+        let valid = writer.write_bytes(&BUFFER[1..2]);
+        assert!(valid.is_ok());
         assert_eq!(writer.inner, BUFFER[..2]);
 
-        writer.write_bytes(&BUFFER[2..]).unwrap();
+        let valid = writer.write_bytes(&BUFFER[2..]);
+        assert!(valid.is_ok());
         assert_eq!(writer.inner, BUFFER);
 
         // invalid write bytes after partial byte
@@ -219,6 +240,9 @@ mod tests {
 
         writer.write_bits(4, BUFFER);
         let invalid = writer.write_bytes(&[1, 2, 3]);
-        assert!(invalid.is_err());
+        assert_eq!(
+            invalid,
+            Err(crate::io::writer::WriterError::LoosePartialByte)
+        );
     }
 }
