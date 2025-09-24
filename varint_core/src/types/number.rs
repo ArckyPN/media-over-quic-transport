@@ -207,7 +207,7 @@ impl VarInt for Number {
         Ok((v, bits + 2))
     }
 
-    fn encode<W>(&self, writer: &mut W) -> Result<(), Self::Error>
+    fn encode<W>(&self, writer: &mut W, _length: Option<usize>) -> Result<usize, Self::Error>
     where
         W: crate::Writer,
     {
@@ -222,7 +222,7 @@ impl VarInt for Number {
             (0b11 << 62 | value).to_be_bytes().to_vec()
         };
         writer.write_bytes(&buf).context(WriterSnafu)?;
-        Ok(())
+        Ok(buf.len() * 8)
     }
 }
 
@@ -605,22 +605,20 @@ mod tests {
         let mut writer = ReferenceWriter::new();
 
         let num = Number::from(VALID_NUM_U6);
-        let valid = num.encode(&mut writer);
-        assert_eq!(valid, Ok(()));
+        let valid = num.encode(&mut writer, None);
+        assert_eq!(valid, Ok(8));
 
         let num = Number::from(VALID_NUM_U14);
-        let valid = num.encode(&mut writer);
-        assert_eq!(valid, Ok(()));
+        let valid = num.encode(&mut writer, None);
+        assert_eq!(valid, Ok(16));
 
         let num = Number::from(VALID_NUM_U30);
-        let valid = num.encode(&mut writer);
-        assert_eq!(valid, Ok(()));
+        let valid = num.encode(&mut writer, None);
+        assert_eq!(valid, Ok(32));
 
-        let Ok(num) = Number::try_from(VALID_NUM_U62) else {
-            unreachable!("valid u62 number")
-        };
-        let valid = num.encode(&mut writer);
-        assert_eq!(valid, Ok(()));
+        let num = Number::try_from(VALID_NUM_U62).unwrap();
+        let valid = num.encode(&mut writer, None);
+        assert_eq!(valid, Ok(64));
 
         let valid = writer.finish();
         assert_eq!(valid, Ok(Bytes::from(buf)));
