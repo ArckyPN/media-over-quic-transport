@@ -14,21 +14,6 @@ pub struct BitStore<const MIN: usize = 0, const MAX: usize = { usize::MAX }> {
 }
 
 impl<const MIN: usize, const MAX: usize> BitStore<MIN, MAX> {
-    pub fn new_bits(buf: &[u8], bits: usize) -> Result<Self, Error> {
-        let mut this = Self::default();
-        this.set_bits(buf, bits)?;
-        Ok(this)
-    }
-
-    pub fn new_number<U>(num: U, bits: Option<usize>) -> Result<Self, Error>
-    where
-        U: Unsigned,
-    {
-        let mut this = Self::default();
-        this.set_number(num, bits)?;
-        Ok(this)
-    }
-
     pub fn set_bits(&mut self, buf: &[u8], bits: usize) -> Result<&mut Self, Error> {
         Self::ensure_fit(bits).context(InvalidLengthSnafu)?;
 
@@ -127,10 +112,6 @@ impl<const MIN: usize, const MAX: usize> BitStore<MIN, MAX> {
             }
             _ => unreachable!("number above u128 are not supported"),
         }
-    }
-
-    pub fn len(&self) -> usize {
-        self.len
     }
 
     fn ensure_fit(bits: usize) -> Result<(), InvalidBitLength> {

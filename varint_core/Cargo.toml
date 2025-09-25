@@ -14,5 +14,6 @@ readme = "README.md"
 moq = []
 
 [dependencies]
-bitvec = { version = "1", features = ["alloc"] }
 bytes = { workspace = true }
+funty = "2.0.0"
+snafu = { workspace = true }
