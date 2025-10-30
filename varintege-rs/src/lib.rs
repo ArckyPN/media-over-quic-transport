@@ -1,12 +1,14 @@
-mod x;
+pub mod error;
 
-#[cfg(feature = "moq")]
-pub use varint_core::{BinaryData, Tuple};
-pub use varint_core::{BitNumber, BitRange, Number};
+pub use error::Error;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub use varint_core as core;
 
-    // TODO
-}
+pub use varint_core::{Reader, VarInt, Writer};
+pub use varint_derive::{VarInt, varint_enum, x};
+
+#[doc(hidden)]
+pub use funty;
+
+#[doc(hidden)]
+pub use snafu;

@@ -12,10 +12,14 @@ readme = "README.md"
 
 [dependencies]
 proc-macro2 = "1"
+proc-macro-error2 = "2.0.1"
 quote = "1"
+snafu = { workspace = true }
 syn = { version = "2" }
 
 varint_core = { path = "../varint_core" }
+
+proc-macro-crate = "3.4.0"
 
 [lib]
 proc-macro = true

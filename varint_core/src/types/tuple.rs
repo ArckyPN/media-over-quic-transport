@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, ops::Deref, vec::IntoIter};
 
 use bytes::Bytes;
 use snafu::{ResultExt, Snafu};
@@ -27,15 +27,13 @@ impl Tuple {
     }
 
     pub fn strings(&self) -> Vec<String> {
-        self.data.iter().map(|v| v.to_owned().into()).collect()
+        self.data.iter().map(|v| v.to_string()).collect()
     }
 
     pub fn as_slice(&self) -> &[BinaryData] {
         &self.data
     }
 }
-
-// TODO impl Vec and slice stuff for easier usage
 
 impl AsRef<Vec<BinaryData>> for Tuple {
     fn as_ref(&self) -> &Vec<BinaryData> {
@@ -61,6 +59,30 @@ impl AsMut<[BinaryData]> for Tuple {
     }
 }
 
+impl Deref for Tuple {
+    type Target = [BinaryData];
+    fn deref(&self) -> &Self::Target {
+        &self.data
+    }
+}
+
+impl IntoIterator for Tuple {
+    type Item = BinaryData;
+    type IntoIter = IntoIter<Self::Item>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.data.into_iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a Tuple {
+    type Item = &'a BinaryData;
+    type IntoIter = core::slice::Iter<'a, BinaryData>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.data.iter()
+    }
+}
+
 impl Display for Tuple {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_list().entries(self.data.iter()).finish()
@@ -69,25 +91,18 @@ impl Display for Tuple {
 
 impl VarInt for Tuple {
     type Error = TupleError;
-    fn decode<R>(reader: &mut R, length: Option<usize>) -> Result<(Self, usize), Self::Error>
+    fn decode<R>(reader: &mut R, _length: Option<usize>) -> Result<(Self, usize), Self::Error>
     where
         R: crate::Reader,
         Self: std::marker::Sized,
     {
-        let (length, mut bits) = match length {
-            Some(l) => (l, l * 8),
-            None => {
-                let (num, bits) = Number::decode(reader, None).context(NumberSnafu)?;
-
-                let num = num.number();
-
-                (num, bits)
-            }
-        };
+        let mut bits = 0;
+        let (length, len) = Number::decode(reader, None).context(NumberSnafu)?;
+        bits += len;
 
         let mut tuples = Vec::new();
 
-        for _ in 0..length {
+        for _ in 0..length.number::<usize>() {
             let (data, b) = BinaryData::decode(reader, None).context(BinaryDataSnafu)?;
             bits += b;
 
@@ -113,59 +128,69 @@ impl VarInt for Tuple {
 
         Ok(bits)
     }
-}
 
-impl From<Vec<BinaryData>> for Tuple {
-    fn from(value: Vec<BinaryData>) -> Self {
-        Self { data: value }
+    fn len_bits(&self) -> usize {
+        self.data.iter().fold(0, |acc, b| acc + b.len_bits())
+    }
+
+    fn length_required() -> bool {
+        // length is provided by the preceding VarInt
+        false
     }
 }
 
-impl From<Vec<&[u8]>> for Tuple {
-    fn from(value: Vec<&[u8]>) -> Self {
+impl<V> FromIterator<V> for Tuple
+where
+    V: Into<BinaryData>,
+{
+    fn from_iter<T: IntoIterator<Item = V>>(iter: T) -> Self {
         Self {
-            data: value.iter().map(|v| v.to_vec().into()).collect(),
+            data: Vec::from_iter(iter.into_iter().map(Into::into)),
         }
     }
 }
 
-impl From<&[BinaryData]> for Tuple {
-    fn from(value: &[BinaryData]) -> Self {
-        Self {
-            data: value.to_vec(),
-        }
+impl<T> From<Vec<T>> for Tuple
+where
+    T: Into<BinaryData>,
+{
+    fn from(value: Vec<T>) -> Self {
+        Self::from_iter(value)
     }
 }
 
-impl<const N: usize> From<[BinaryData; N]> for Tuple {
-    fn from(value: [BinaryData; N]) -> Self {
-        Self {
-            data: value.to_vec(),
-        }
+impl<T> From<&'static [T]> for Tuple
+where
+    T: Into<BinaryData> + Clone,
+{
+    fn from(value: &'static [T]) -> Self {
+        Self::from_iter(value.to_vec())
+    }
+}
+impl<T> From<Box<[T]>> for Tuple
+where
+    T: Into<BinaryData>,
+{
+    fn from(value: Box<[T]>) -> Self {
+        Self::from_iter(value)
     }
 }
 
-impl From<&[&[u8]]> for Tuple {
-    fn from(value: &[&[u8]]) -> Self {
-        Self {
-            data: value.iter().map(|v| v.to_vec().into()).collect(),
-        }
+impl<T, const N: usize> From<[T; N]> for Tuple
+where
+    T: Into<BinaryData>,
+{
+    fn from(value: [T; N]) -> Self {
+        Self::from_iter(value)
     }
 }
 
-impl<const N: usize, const M: usize> From<[[u8; M]; N]> for Tuple {
-    fn from(value: [[u8; M]; N]) -> Self {
-        Self {
-            data: value.iter().map(|v| v.to_vec().into()).collect(),
-        }
-    }
-}
-
-impl<const N: usize> From<[&[u8]; N]> for Tuple {
-    fn from(value: [&[u8]; N]) -> Self {
-        Self {
-            data: value.iter().map(|v| v.to_vec().into()).collect(),
-        }
+impl<T, const N: usize> From<&[T; N]> for Tuple
+where
+    T: Into<BinaryData> + Clone,
+{
+    fn from(value: &[T; N]) -> Self {
+        Self::from_iter(value.to_vec())
     }
 }
 

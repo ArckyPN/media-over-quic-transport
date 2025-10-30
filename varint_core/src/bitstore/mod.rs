@@ -14,6 +14,10 @@ pub struct BitStore<const MIN: usize = 0, const MAX: usize = { usize::MAX }> {
 }
 
 impl<const MIN: usize, const MAX: usize> BitStore<MIN, MAX> {
+    pub fn len(&self) -> usize {
+        self.len
+    }
+
     pub fn set_bits(&mut self, buf: &[u8], bits: usize) -> Result<&mut Self, Error> {
         Self::ensure_fit(bits).context(InvalidLengthSnafu)?;
 
@@ -47,7 +51,7 @@ impl<const MIN: usize, const MAX: usize> BitStore<MIN, MAX> {
         self.len = bits;
 
         // remove superfluous preceding bytes
-        let bytes = if self.len % 8 != 0 {
+        let bytes = if !self.len.is_multiple_of(8) {
             self.len / 8 + 1
         } else {
             self.len / 8
@@ -63,7 +67,7 @@ impl<const MIN: usize, const MAX: usize> BitStore<MIN, MAX> {
             _ => return Err(Error::TooLarge),
         };
 
-        if self.len % 8 != 0 {
+        if !self.len.is_multiple_of(8) {
             utils::shift_bits(&mut bytes, self.len);
         }
 

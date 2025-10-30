@@ -1,18 +1,18 @@
 #[cfg(feature = "moq")]
-mod binary_data;
+pub mod binary_data;
 pub mod bit_number;
-mod bit_range;
-mod number;
+pub mod bit_range;
+pub mod number;
 #[cfg(feature = "moq")]
-mod tuple;
+pub mod tuple;
 
 #[cfg(feature = "moq")]
-pub use binary_data::BinaryData;
+pub use binary_data::{BinaryData, BinaryDataError};
 pub use bit_number::{BitNumber, BitNumberError};
-pub use bit_range::{BitRange, BitRangeNumberError};
+pub use bit_range::{BitRange, BitRangeError};
 pub use number::{Number, NumberError};
 #[cfg(feature = "moq")]
-pub use tuple::Tuple;
+pub use tuple::{Tuple, TupleError};
 
 use funty::Unsigned;
 

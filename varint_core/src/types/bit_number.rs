@@ -46,7 +46,7 @@ impl<const N: usize, const MIN: u128, const MAX: u128> BitNumber<N, MIN, MAX> {
     /// ```
     pub fn new<U>(v: U) -> Result<Self, BitNumberError<U>>
     where
-        U: Unsigned,
+        U: Unsigned, // TODO can probably this Integral and add a verification if it is positive
     {
         let mut this = Self::default();
         this.set_number(v)?;
@@ -170,6 +170,15 @@ impl<const N: usize, const MIN: u128, const MAX: u128> VarInt for BitNumber<N, M
 
         Ok(N)
     }
+
+    fn len_bits(&self) -> usize {
+        N
+    }
+
+    fn length_required() -> bool {
+        // length is provided by the generic bound N
+        false
+    }
 }
 
 #[derive(Debug, Snafu, PartialEq)]
@@ -197,6 +206,28 @@ where
         needs: usize,
         cap: usize,
     },
+}
+
+impl<U> BitNumberError<U>
+where
+    U: Unsigned,
+{
+    pub fn cast(self) -> BitNumberError<u128> {
+        match self {
+            Self::BitStoreError { source } => BitNumberError::BitStoreError { source },
+            Self::InvalidCapacity { value, needs, cap } => BitNumberError::InvalidCapacity {
+                value: value.as_u128(),
+                needs,
+                cap,
+            },
+            Self::OutOfRange { value, min, max } => BitNumberError::OutOfRange {
+                value: value.as_u128(),
+                min,
+                max,
+            },
+            Self::ReaderError { source } => BitNumberError::ReaderError { source },
+        }
+    }
 }
 
 #[derive(Debug, Snafu, PartialEq)]

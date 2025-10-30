@@ -1,10 +1,14 @@
-use std::fmt::{Debug, Display};
+use std::{
+    fmt::{Debug, Display, LowerHex, UpperHex},
+    hash::Hash,
+    str::FromStr,
+};
 
 use funty::{AtMost32, Integral, Unsigned};
 use snafu::{ResultExt, Snafu};
 
 use crate::{
-    VarInt,
+    StringError, VarInt,
     bitstore::{self, BitStore},
     io::{reader::ReaderError, writer::WriterError},
 };
@@ -60,7 +64,7 @@ impl Number {
     ///
     /// ```
     /// # use varint_core::Number;
-    /// let v = Number::try_new(123u64);
+    /// let v = Number::try_new(123u64).unwrap();
     /// assert_eq!(v, 123);
     /// ```
     pub fn try_new<U>(v: U) -> Result<Self, NumberError<U>>
@@ -135,6 +139,18 @@ impl Number {
 impl Display for Number {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.number::<u64>())
+    }
+}
+
+impl LowerHex for Number {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::LowerHex::fmt(&self.number::<u64>(), f)
+    }
+}
+
+impl UpperHex for Number {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::UpperHex::fmt(&self.number::<u64>(), f)
     }
 }
 
@@ -224,6 +240,24 @@ impl VarInt for Number {
         writer.write_bytes(&buf).context(WriterSnafu)?;
         Ok(buf.len() * 8)
     }
+
+    fn len_bits(&self) -> usize {
+        let value = self.number::<u64>();
+        if value <= MAX_U6 {
+            8
+        } else if value <= MAX_U14 {
+            16
+        } else if value <= MAX_U30 {
+            32
+        } else {
+            64
+        }
+    }
+
+    fn length_required() -> bool {
+        // length is provided by the two MSB bits of the first byte
+        false
+    }
 }
 
 /// Error when [VarInt](crate::VarInt) implementation fails.
@@ -232,21 +266,32 @@ pub enum NumberError<U>
 where
     U: Unsigned,
 {
-    ReaderError {
-        source: ReaderError,
-    },
-    WriterError {
-        source: WriterError,
-    },
+    #[snafu(display("Reader: {source}"))]
+    ReaderError { source: ReaderError },
+    #[snafu(display("Writer: {source}"))]
+    WriterError { source: WriterError },
     #[snafu(display("unable to store"))]
-    BitStoreError {
-        source: bitstore::Error,
-    },
+    BitStoreError { source: bitstore::Error },
     /// tried to create a VarInt with a too large number
     #[snafu(display("number >{num}< is too large"))]
-    TooLarge {
-        num: U,
-    },
+    TooLarge { num: U },
+    #[snafu(display("{source}"))]
+    StringError { source: StringError },
+}
+
+impl<U> NumberError<U>
+where
+    U: Unsigned,
+{
+    pub fn cast(self) -> NumberError<u128> {
+        match self {
+            Self::BitStoreError { source } => NumberError::BitStoreError { source },
+            Self::ReaderError { source } => NumberError::ReaderError { source },
+            Self::StringError { source } => NumberError::StringError { source },
+            Self::WriterError { source } => NumberError::WriterError { source },
+            Self::TooLarge { num } => NumberError::TooLarge { num: num.as_u128() },
+        }
+    }
 }
 
 /// Error when casting to and from [Number] to primitive types.
@@ -264,6 +309,14 @@ where
     /// Error when trying to cast a Number into a too small type
     #[snafu(display("Number >{value}< does not fit into the given type, max value: >{max}<"))]
     UnFit { value: Number, max: I },
+}
+
+impl Eq for Number {}
+
+impl Hash for Number {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.number::<u64>().hash(state);
+    }
 }
 
 macro_rules! impl_partial_eq {
@@ -344,6 +397,11 @@ macro_rules! impl_from {
                     Self::new(value)
                 }
             }
+            impl From<&$prim> for Number {
+                fn from(value: &$prim) -> Self {
+                    Self::new(*value)
+                }
+            }
         )+
     };
 }
@@ -374,6 +432,15 @@ macro_rules! impl_try_from {
                     Number::try_new(value as u64).context(InvalidSnafu { value })
                 }
             }
+            impl TryFrom<&$prim> for Number {
+                type Error = ConversionError<$prim>;
+                fn try_from(value: &$prim) -> Result<Self, Self::Error> {
+                    snafu::ensure!(*value >= (0 as $prim), IsNegativeSnafu { value: *value });
+                    // value is verified to be positive => casting
+                    // to u64 is permissible
+                    Number::try_new(*value as u64).context(InvalidSnafu { value: *value })
+                }
+            }
         )+
     };
 }
@@ -390,10 +457,33 @@ macro_rules! impl_try_from_number {
                     Ok(value.number::<u64>() as $prim)
                 }
             }
+            impl TryFrom<&Number> for $prim {
+                type Error = ConversionError<$prim>;
+                fn try_from(value: &Number) -> Result<Self, Self::Error> {
+                    snafu::ensure!(*value <= <$prim>::MAX, UnFitSnafu { value, max: <$prim>::MAX });
+
+                    Ok(value.number::<u64>() as $prim)
+                }
+            }
         )+
     };
 }
 impl_try_from_number!(u8, u16, u32, usize, i8, i16, i32, i64, i128, isize);
+
+impl FromStr for Number {
+    type Err = NumberError<u64>;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let num: u64 = crate::number_from_str(s).context(StringSnafu)?;
+
+        Self::try_new(num)
+    }
+}
+
+impl From<&Number> for Number {
+    fn from(value: &Number) -> Self {
+        value.clone()
+    }
+}
 
 #[cfg(test)]
 mod tests {

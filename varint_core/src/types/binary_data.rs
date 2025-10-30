@@ -1,5 +1,5 @@
 use core::hash;
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 
 use bytes::{Bytes, BytesMut, buf::IntoIter};
 use snafu::{ResultExt, Snafu};
@@ -9,7 +9,7 @@ use crate::{
     io::{reader::ReaderError, writer::WriterError},
 };
 
-#[derive(Debug, Default, PartialEq, PartialOrd, Eq, Ord, Clone)]
+#[derive(Default, PartialEq, PartialOrd, Eq, Ord, Clone)]
 pub struct BinaryData {
     data: Bytes,
 }
@@ -18,25 +18,7 @@ impl BinaryData {
     pub fn new(buf: &[u8]) -> Self {
         buf.to_vec().into()
     }
-
-    pub fn bytes(&self) -> Bytes {
-        self.data.clone()
-    }
-
-    pub fn string(&self) -> String {
-        String::from_utf8_lossy(self).to_string()
-    }
-
-    pub fn as_slice(&self) -> &[u8] {
-        &self.data
-    }
-
-    pub fn to_vec(&self) -> Vec<u8> {
-        self.data.to_vec()
-    }
 }
-
-// TODO impl Vec and slice stuff for easier usage
 
 impl Display for BinaryData {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -44,25 +26,28 @@ impl Display for BinaryData {
     }
 }
 
+impl Debug for BinaryData {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("BinaryData")
+            .field("len", &self.data.len())
+            .field("data", &self.data.to_vec())
+            .finish()
+    }
+}
+
 impl VarInt for BinaryData {
     type Error = BinaryDataError;
-    fn decode<R>(reader: &mut R, length: Option<usize>) -> Result<(Self, usize), Self::Error>
+    fn decode<R>(reader: &mut R, _length: Option<usize>) -> Result<(Self, usize), Self::Error>
     where
         R: crate::Reader,
         Self: std::marker::Sized,
     {
-        let (length, bits) = match length {
-            Some(l) => (l, l * 8),
-            None => {
-                let (num, bits) = Number::decode(reader, None).context(NumberSnafu)?;
+        let mut bits = 0;
+        let (length, len) = Number::decode(reader, None).context(NumberSnafu)?;
+        bits += len;
 
-                let num = num.number();
-
-                (num, bits + num * 8)
-            }
-        };
-
-        let data = reader.read_bytes(length).context(ReaderSnafu)?;
+        let data = reader.read_bytes(length.number()).context(ReaderSnafu)?;
+        bits += length.number::<usize>() * 8;
 
         Ok((data.into(), bits))
     }
@@ -80,6 +65,16 @@ impl VarInt for BinaryData {
         bits += len * 8;
 
         Ok(bits)
+    }
+
+    fn len_bits(&self) -> usize {
+        // TODO + len as VarInt bits
+        self.len() * 8
+    }
+
+    fn length_required() -> bool {
+        // length is provided by the preceding VarInt
+        false
     }
 }
 
@@ -298,12 +293,6 @@ impl From<String> for BinaryData {
     }
 }
 
-impl From<BinaryData> for String {
-    fn from(value: BinaryData) -> Self {
-        String::from_utf8_lossy(&value).to_string()
-    }
-}
-
 macro_rules! impl_from {
     ( $($typ:path),+ $(,)* ) => {
         $(
@@ -314,9 +303,21 @@ macro_rules! impl_from {
                     }
                 }
             }
+            impl From<&$typ> for BinaryData {
+                fn from(value: &$typ) -> Self {
+                    Self {
+                        data: value.clone().into(),
+                    }
+                }
+            }
             impl From<BinaryData> for $typ {
                 fn from(value: BinaryData) -> Self {
                     <$typ>::from(value.data)
+                }
+            }
+            impl From<&BinaryData> for $typ {
+                fn from(value: &BinaryData) -> Self {
+                    <$typ>::from(value.data.clone())
                 }
             }
         )+

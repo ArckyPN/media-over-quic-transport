@@ -1,4 +1,4 @@
-use std::fmt::{Debug, Display};
+use std::fmt::Debug;
 
 use bytes::Bytes;
 use funty::{Integral, Unsigned};
@@ -28,7 +28,7 @@ pub struct BitRange<const MIN: usize = 0, const MAX: usize = { usize::MAX }> {
 
 impl<const MIN: usize, const MAX: usize> BitRange<MIN, MAX> {
     // TODO doc + example
-    pub fn new_number<U>(v: U, n: Option<usize>) -> Result<Self, BitRangeNumberError<U>>
+    pub fn new_number<U>(v: U, n: Option<usize>) -> Result<Self, BitRangeError<U>>
     where
         U: Unsigned,
     {
@@ -43,7 +43,7 @@ impl<const MIN: usize, const MAX: usize> BitRange<MIN, MAX> {
     ///
     /// ```
     /// # use varint_core::BitRange;
-    /// let v: BitRange<8, 16> = BitRange::new(123u8).unwrap();
+    /// let v: BitRange<8, 16> = BitRange::new_number(123u8, None).unwrap();
     /// assert_eq!(v.number::<u8>(), 123);
     /// ```
     pub fn number<U>(&self) -> U
@@ -60,7 +60,7 @@ impl<const MIN: usize, const MAX: usize> BitRange<MIN, MAX> {
     /// ```
     /// # use varint_core::BitRange;
     /// let mut v: BitRange<8, 16> = BitRange::default();
-    /// v.set_number(123u8).unwrap();
+    /// v.set_number(123u8, None).unwrap();
     /// assert_eq!(v, 123);
     /// ```
     ///
@@ -69,13 +69,9 @@ impl<const MIN: usize, const MAX: usize> BitRange<MIN, MAX> {
     /// ```
     /// # use varint_core::BitRange;
     /// let mut v: BitRange<0, 2> = BitRange::default();
-    /// assert!(v.set_number(20u8).is_err());
+    /// assert!(v.set_number(20u8, None).is_err());
     /// ```
-    pub fn set_number<U>(
-        &mut self,
-        v: U,
-        n: Option<usize>,
-    ) -> Result<&mut Self, BitRangeNumberError<U>>
+    pub fn set_number<U>(&mut self, v: U, n: Option<usize>) -> Result<&mut Self, BitRangeError<U>>
     where
         U: Unsigned,
     {
@@ -128,16 +124,9 @@ impl<const MIN: usize, const MAX: usize> BitRange<MIN, MAX> {
     }
 }
 
-impl<const MIN: usize, const MAX: usize> Display for BitRange<MIN, MAX> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.number::<u128>().to_string())
-    }
-}
-
 impl<const MIN: usize, const MAX: usize> Debug for BitRange<MIN, MAX> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("BitRange")
-            .field("value", &self.number::<u128>())
             .field("min_bits", &MIN)
             .field("max_bits", &MAX)
             .field("inner", &self.data)
@@ -177,6 +166,7 @@ impl<const MIN: usize, const MAX: usize> VarInt for BitRange<MIN, MAX> {
     where
         W: crate::Writer,
     {
+        // TODO Snafu context instead
         let Some(length) = length else {
             return Err(DecodeError::MissingLength2);
         };
@@ -186,10 +176,19 @@ impl<const MIN: usize, const MAX: usize> VarInt for BitRange<MIN, MAX> {
 
         Ok(length)
     }
+
+    fn len_bits(&self) -> usize {
+        self.data.len()
+    }
+
+    fn length_required() -> bool {
+        // length is variable and needs to be provided
+        true
+    }
 }
 
 #[derive(Debug, Snafu, PartialEq)]
-pub enum BitRangeNumberError<U>
+pub enum BitRangeError<U>
 where
     U: Unsigned,
 {
@@ -214,6 +213,25 @@ where
     ByteError {
         source: BitRangeBytesError,
     },
+}
+
+impl<U> BitRangeError<U>
+where
+    U: Unsigned,
+{
+    pub fn cast(self) -> BitRangeError<u128> {
+        match self {
+            Self::BitStoreNumberError { source } => BitRangeError::BitStoreNumberError { source },
+            Self::ByteError { source } => BitRangeError::ByteError { source },
+            Self::InvalidCapacity { value, needs, cap } => BitRangeError::InvalidCapacity {
+                value: value.as_u128(),
+                needs,
+                cap,
+            },
+            Self::MissingLength => BitRangeError::MissingLength,
+            Self::ReaderError { source } => BitRangeError::ReaderError { source },
+        }
+    }
 }
 
 #[derive(Debug, Snafu, PartialEq)]
@@ -264,7 +282,7 @@ where
     #[snafu(display("failed to create a BitRange from >{value}<"))]
     Invalid {
         value: I,
-        source: BitRangeNumberError<u128>,
+        source: BitRangeError<u128>,
     },
     /// Error when trying to cast a Number into a too small type
     #[snafu(display("BitRange >{value}< does not fit into the given type, max value: >{max}<"))]
@@ -363,12 +381,85 @@ impl_try_from!(
     u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize
 );
 
+impl PartialEq<&str> for BitRange {
+    fn eq(&self, other: &&str) -> bool {
+        self.bytes() == other.as_bytes()
+    }
+}
+
+impl PartialEq<String> for BitRange {
+    fn eq(&self, other: &String) -> bool {
+        self.bytes() == other.as_bytes()
+    }
+}
+
+impl PartialEq<&[u8]> for BitRange {
+    fn eq(&self, other: &&[u8]) -> bool {
+        self.bytes() == other
+    }
+}
+
+// TODO From strings and bytes
+// TODO TryFrom for BitRange with generics
+impl From<&str> for BitRange {
+    fn from(value: &str) -> Self {
+        Self::new_bytes(value.as_bytes(), value.len() * 8).unwrap()
+    }
+}
+
+impl From<String> for BitRange {
+    fn from(value: String) -> Self {
+        Self::new_bytes(value.as_bytes(), value.len() * 8).unwrap()
+    }
+}
+
+impl From<&[u8]> for BitRange {
+    fn from(value: &[u8]) -> Self {
+        Self::new_bytes(value, value.as_ref().len() * 8).unwrap()
+    }
+}
+
+impl<const N: usize> From<[u8; N]> for BitRange {
+    fn from(value: [u8; N]) -> Self {
+        Self::new_bytes(&value, N * 8).unwrap()
+    }
+}
+
+impl<const N: usize> From<&[u8; N]> for BitRange {
+    fn from(value: &[u8; N]) -> Self {
+        Self::new_bytes(value, N * 8).unwrap()
+    }
+}
+
 #[cfg(test)]
 mod tests {
-
     use crate::{Number, ReferenceReader, ReferenceWriter, Writer};
 
     use super::*;
+
+    #[test]
+    fn from_buf_test() {
+        const BUF: &[u8] = &[1, 2, 3];
+
+        let valid = BitRange::from(BUF);
+        assert_eq!(valid, BUF);
+    }
+
+    #[test]
+    fn from_str_test() {
+        const STR_SLICE: &str = "message";
+        let static_str: &'static str = "data";
+        let owned_string = "my stuff".to_owned();
+
+        let valid = BitRange::from(STR_SLICE);
+        assert_eq!(valid, STR_SLICE);
+
+        let valid = BitRange::from(static_str);
+        assert_eq!(valid, static_str);
+
+        let valid = BitRange::from(owned_string.clone());
+        assert_eq!(valid, owned_string);
+    }
 
     #[test]
     fn set_number_test() {
@@ -380,7 +471,7 @@ mod tests {
         let invalid = base.set_number(u32::MAX, None).unwrap_err();
         assert_eq!(
             invalid,
-            BitRangeNumberError::InvalidCapacity {
+            BitRangeError::InvalidCapacity {
                 value: u32::MAX,
                 needs: 32,
                 cap: 16
@@ -396,7 +487,7 @@ mod tests {
         let invalid = BitRange::<8, 16>::new_number(u32::MAX, None).unwrap_err();
         assert_eq!(
             invalid,
-            BitRangeNumberError::InvalidCapacity {
+            BitRangeError::InvalidCapacity {
                 value: u32::MAX,
                 needs: 32,
                 cap: 16
@@ -437,7 +528,7 @@ mod tests {
             invalid,
             ConversionError::Invalid {
                 value: 100,
-                source: BitRangeNumberError::InvalidCapacity {
+                source: BitRangeError::InvalidCapacity {
                     value: 100,
                     needs: 7,
                     cap: 2

@@ -16,4 +16,5 @@ moq = []
 [dependencies]
 bytes = { workspace = true }
 funty = "2.0.0"
+paste = "1"
 snafu = { workspace = true }

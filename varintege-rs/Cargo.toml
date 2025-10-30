@@ -14,6 +14,7 @@ readme = "README.md"
 moq = ["varint_core/moq"]
 
 [dependencies]
+funty = "2.0.0"
 snafu = { workspace = true }
 
 varint_core = { path = "../varint_core" }
