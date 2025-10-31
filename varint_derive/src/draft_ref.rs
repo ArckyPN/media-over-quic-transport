@@ -54,7 +54,6 @@ impl DraftRefArgs {
         }
 
         let url = format!("{BASE_URL}-{}.{URL_EXT}#{frag}", quote! { #version });
-        println!("{} -> {}", name, url);
         format!("\n\nFull details can be found in the [Draft]({url}).")
     }
 
