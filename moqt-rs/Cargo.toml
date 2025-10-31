@@ -14,4 +14,5 @@ readme = "README.md"
 indexmap = "2.12.0"
 paste = "1"
 snafu = { workspace = true }
+url = "2.5.7"
 varint = { path = "../varintege-rs", features = ["moq"], package = "varintege-rs" }
