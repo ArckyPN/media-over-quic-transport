@@ -250,6 +250,7 @@ impl ImplStruct {
             quote! {}
         };
 
+        // TODO add struct attr to add parameters, with a list of possibly expected types (token, max cache, etc), add getters (and setters?) for those and generic setters, for any params
         quote! {
             impl #varint::VarInt for #name
         }

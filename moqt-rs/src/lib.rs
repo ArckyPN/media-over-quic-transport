@@ -3,5 +3,3 @@ pub mod types;
 
 #[cfg(test)]
 mod test_helper;
-
-const DRAFT_NUM: usize = 14;

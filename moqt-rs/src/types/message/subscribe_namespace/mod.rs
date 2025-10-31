@@ -10,9 +10,13 @@ use varint::{VarInt, x};
 
 use crate::types::track;
 
+/// TODO docs
 #[derive(Debug, VarInt, PartialEq, Clone)]
+#[varint::draft_ref(v = 14)]
 pub struct SubscribeNamespace {
+    /// TODO docs
     request_id: x!(i),
+    /// TODO docs
     namespace_prefix: track::Namespace,
     // TODO parameters
 }

@@ -1,7 +1,10 @@
 use varint::{VarInt, x};
 
+/// TODO docs
 #[derive(Debug, VarInt, PartialEq, Clone)]
+#[varint::draft_ref(v = 14, rename = "client_setup-and-server_set")]
 pub struct ClientSetup {
+    /// TODO docs
     #[varint(count = x(i))]
     supported_versions: x!(i; ...),
     // TODO parameters should be an extra type

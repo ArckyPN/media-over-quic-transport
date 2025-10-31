@@ -275,10 +275,10 @@ pub enum ConversionError<I>
 where
     I: Integral,
 {
-    /// Error when trying to create a [Number] from a negative integer
+    /// Error when trying to create a [BitRange] from a negative integer
     #[snafu(display("VarInt Number cannot be negative, trying >{value}<"))]
     IsNegative { value: I },
-    /// Error when [BitRange::new] fails
+    /// Error when [BitRange::new_number()] fails
     #[snafu(display("failed to create a BitRange from >{value}<"))]
     Invalid {
         value: I,

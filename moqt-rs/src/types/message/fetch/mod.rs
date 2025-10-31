@@ -13,16 +13,25 @@ use crate::types::{
 
 use varint::{VarInt, x};
 
+/// TODO docs
 #[derive(Debug, VarInt, PartialEq, Clone)]
+#[varint::draft_ref(v = 14)]
 pub struct Fetch {
+    /// TODO docs
     request_id: x!(i),
+    /// TODO docs
     subscriber_priority: x!(8),
+    /// TODO docs
     group_order: GroupOrder,
+    /// TODO docs
     fetch_type: FetchType,
+    /// TODO docs
     #[varint(when(fetch_type = 0x1))]
     standalone: x!([StandaloneFetch]),
+    /// TODO docs
     #[varint(when(fetch_type = 0x2 || 0x3))]
     joining: x!([JoiningFetch]),
+    /// TODO docs
     parameters: Parameters,
 }
 

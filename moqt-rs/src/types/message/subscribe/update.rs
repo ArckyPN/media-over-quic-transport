@@ -2,11 +2,17 @@ use varint::{VarInt, x};
 
 use crate::types::location::Location;
 
+/// TODO docs
 #[derive(Debug, VarInt, PartialEq, Clone)]
+#[varint::draft_ref(v = 14)]
 pub struct SubscribeUpdate {
+    /// TODO docs
     request_id: x!(i),
+    /// TODO docs
     start_location: Location,
+    /// TODO docs
     end_group: x!(i),
+    /// TODO docs
     subscriber_priority: x!(8),
     // TODO parameters
 }

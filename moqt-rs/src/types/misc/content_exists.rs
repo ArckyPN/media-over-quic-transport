@@ -3,6 +3,7 @@ use varint::varint_enum;
 varint_enum! {
     #[derive(Debug, PartialEq, Clone, Copy)]
     #[varint(value = x(i))]
+    #[varint::draft_ref(v = 14, rename = "section-9.8-3.5.1")]
     pub enum ContentExists {
         Yes = 0x1,
         No = 0x0,

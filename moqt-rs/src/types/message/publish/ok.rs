@@ -5,15 +5,24 @@ use crate::types::{
     misc::{FilterType, Forward, GroupOrder},
 };
 
+/// TODO docs
 #[derive(Debug, VarInt, PartialEq, Clone)]
+#[varint::draft_ref(v = 14)]
 pub struct PublishOk {
+    /// TODO docs
     request_id: x!(i),
+    /// TODO docs
     forward: Forward,
+    /// TODO docs
     subscriber_priority: x!(8),
+    /// TODO docs
     group_order: GroupOrder,
+    /// TODO docs
     filter_type: FilterType,
+    /// TODO docs
     #[varint(when(filter_type = 0x3 || 0x4))]
     start_location: x!([Location]),
+    /// TODO docs
     #[varint(when(filter_type = 0x4))]
     end_group: x!([i]),
     // TODO parameters

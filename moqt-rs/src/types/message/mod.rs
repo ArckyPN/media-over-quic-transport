@@ -1,3 +1,7 @@
+//! Control Messages
+//!
+//! # TODO docs
+
 mod fetch;
 mod go_away;
 mod max_request_id;
@@ -10,7 +14,7 @@ mod subscribe_namespace;
 mod track_status;
 
 pub use fetch::{Fetch, FetchCancel, FetchError, FetchOk};
-pub use go_away::GoAway;
+pub use go_away::Goaway;
 pub use max_request_id::MaxRequestId;
 pub use publish::{Publish, PublishDone, PublishError, PublishOk};
 pub use publish_namespace::{
@@ -33,10 +37,11 @@ varint_enum! {
     }
     #[derive(Debug, PartialEq, Clone)]
     #[varint(value = x(i))]
+    #[varint::draft_ref(v = 14, rename = "control-messages")]
     pub enum ControlMessage {
         ClientSetup(ClientSetup) = 0x20,
         ServerSetup(ServerSetup) = 0x21,
-        GoAway(GoAway) = 0x10,
+        GoAway(Goaway) = 0x10,
         MaxRequestId(MaxRequestId) = 0x15,
         RequestsBlocked(RequestsBlocked) = 0x1A,
         Subscribe(Subscribe) = 0x3,

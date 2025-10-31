@@ -1,3 +1,4 @@
+mod draft_ref;
 mod enums;
 mod macro_helper;
 mod structs;
@@ -5,6 +6,7 @@ mod utils;
 mod varint_enum;
 mod x;
 
+use draft_ref::DraftRefArgs;
 use enums::ImplEnum;
 use structs::ImplStruct;
 use varint_enum::VarIntEnum;
@@ -123,6 +125,25 @@ pub fn varint_enum(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let vie = parse_macro_input!(input as VarIntEnum);
     // vie.quote().into()
     quote! { #vie }.into()
+}
+
+// TODO doc + moq feature
+#[proc_macro_attribute]
+#[proc_macro_error]
+pub fn draft_ref(
+    args: proc_macro::TokenStream,
+    item: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    let args = parse_macro_input!(args as DraftRefArgs);
+    let mut input = parse_macro_input!(item as DeriveInput);
+
+    let doc = args.to_doc_string(&input.ident);
+    input.attrs.push(syn::parse_quote!( #[doc = #doc] ));
+    quote! {
+        // #[doc = #doc]
+        #input
+    }
+    .into()
 }
 
 fn crate_name() -> Ident {

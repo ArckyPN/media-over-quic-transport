@@ -17,6 +17,7 @@ mod sub {
                 }
 
                 impl [< $name $ty >] {
+                    /// TODO docs
                     pub fn new<ID, C, R>(id: ID, code: C, reason: R) -> Self
                     where
                         ID: Into<varint::x!(i)>,

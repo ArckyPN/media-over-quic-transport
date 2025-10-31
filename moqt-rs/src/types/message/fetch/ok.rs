@@ -2,11 +2,17 @@ use varint::{VarInt, x};
 
 use crate::types::{location::Location, misc::EndOfTrack, misc::GroupOrder};
 
+/// TODO docs
 #[derive(Debug, VarInt, PartialEq, Clone)]
+#[varint::draft_ref(v = 14)]
 pub struct FetchOk {
+    /// TODO docs
     request_id: x!(i),
+    /// TODO docs
     group_order: GroupOrder,
+    /// TODO docs
     end_of_track: EndOfTrack,
+    /// TODO docs
     end_location: Location,
     // TODO parameters
 }

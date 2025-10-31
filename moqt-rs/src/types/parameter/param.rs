@@ -10,6 +10,8 @@ const DELIVERY_TIMEOUT: u64 = 0x02;
 const AUTHORIZATION_TOKEN: u64 = 0x03;
 const MAX_CACHE_DURATION: u64 = 0x04;
 
+// TODO there are more params: https://www.ietf.org/archive/id/draft-ietf-moq-transport-14.html#name-setup-parameters
+
 #[derive(PartialEq, Clone)]
 pub enum Parameter {
     /// # Type: even

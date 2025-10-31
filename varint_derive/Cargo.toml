@@ -10,7 +10,10 @@ repository = "https://github.com/ArckyPN/media-over-quic-transport/tree/main/var
 license = "MIT"
 readme = "README.md"
 
+# TODO moq feature
+
 [dependencies]
+darling = "0.21.3"
 proc-macro2 = "1"
 proc-macro-error2 = "2.0.1"
 quote = "1"
@@ -18,6 +21,9 @@ snafu = { workspace = true }
 syn = { version = "2" }
 
 varint_core = { path = "../varint_core" }
+
+# TODO only for moq feature
+convert_case = "0.8"
 
 proc-macro-crate = "3.4.0"
 

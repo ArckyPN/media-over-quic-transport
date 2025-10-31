@@ -7,13 +7,21 @@ use crate::types::{
     message::subscribe::{ContentExists, GroupOrder},
 };
 
+/// TODO docs
 #[derive(Debug, VarInt, PartialEq, Clone)]
+#[varint::draft_ref(v = 14)]
 pub struct SubscribeOk {
+    /// TODO docs
     request_id: x!(i),
+    /// TODO docs
     track_alias: x!(i),
+    /// TODO docs
     expires: x!(i),
+    /// TODO docs
     group_order: GroupOrder,
+    /// TODO docs
     content_exists: ContentExists,
+    /// TODO docs
     #[varint(when(content_exists = 0x1))]
     largest_location: x!([Location]),
     // TODO parameters

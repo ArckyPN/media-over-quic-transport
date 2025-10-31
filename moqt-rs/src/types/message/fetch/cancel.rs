@@ -1,11 +1,15 @@
 use varint::{VarInt, x};
 
+/// TODO docs
 #[derive(Debug, VarInt, PartialEq, Clone)]
+#[varint::draft_ref(v = 14)]
 pub struct FetchCancel {
+    /// TODO docs
     request_id: x!(i),
 }
 
 impl FetchCancel {
+    /// TODO docs
     pub fn new<T>(id: T) -> Self
     where
         T: Into<x!(i)>,

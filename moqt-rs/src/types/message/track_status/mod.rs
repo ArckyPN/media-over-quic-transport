@@ -6,4 +6,5 @@ pub use ok::TrackStatusOk;
 
 use crate::types::message::Subscribe;
 
+/// See [Subscribe] for details.
 pub type TrackStatus = Subscribe;

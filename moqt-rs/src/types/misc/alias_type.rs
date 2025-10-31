@@ -3,6 +3,7 @@ use varint::varint_enum;
 varint_enum! {
     /// An Integer defining the serialization and
     /// processing behavior of a [Token](crate::types::Token).
+    #[varint::draft_ref(v = 14, rename = "authorization-token")]
     #[derive(Debug, PartialEq, Clone, Copy)]
     pub enum AliasType {
         /// There is an Alias but no Type or Value.

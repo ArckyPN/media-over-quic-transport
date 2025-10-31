@@ -235,7 +235,7 @@ pub enum ConversionError<I>
 where
     I: Integral,
 {
-    /// Error when trying to create a [Number] from a negative integer
+    /// Error when trying to create a [BitNumber] from a negative integer
     #[snafu(display("VarInt Number cannot be negative, trying >{value}<"))]
     IsNegative { value: I },
     /// Error when [BitNumber::new] fails

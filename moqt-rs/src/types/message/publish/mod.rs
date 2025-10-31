@@ -14,16 +14,26 @@ use crate::types::{
     track,
 };
 
+/// TODO docs
 #[derive(Debug, VarInt, PartialEq, Clone)]
+#[varint::draft_ref(v = 14)]
 pub struct Publish {
+    /// TODO docs
     request_id: x!(i),
+    /// TODO docs
     namespace: track::Namespace,
+    /// TODO docs
     name: track::Name,
+    /// TODO docs
     alias: x!(i), // TODO new type track::Alias?
+    /// TODO docs
     group_order: GroupOrder,
+    /// TODO docs
     content_exists: ContentExists,
+    /// TODO docs
     #[varint(when(content_exists = 0x1))]
     largest_location: x!([Location]),
+    /// TODO docs
     forward: Forward,
     // TODO parameters
 }

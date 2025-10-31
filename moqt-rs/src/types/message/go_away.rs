@@ -1,7 +1,12 @@
 use varint::{VarInt, x};
 
+/// TODO docs
+///
+/// some placeholder stuff
 #[derive(Debug, VarInt, PartialEq, Clone)]
-pub struct GoAway {
+#[varint::draft_ref(v = 14)]
+pub struct Goaway {
+    /// TODO docs
     // TODO not specified but should probably be valid utf-8
     // TODO larger than 8192 bytes => protocol violation
     #[varint(length = x(i))]
@@ -14,7 +19,7 @@ mod tests {
 
     use super::*;
 
-    impl TestData for GoAway {
+    impl TestData for Goaway {
         fn test_data() -> Vec<(Self, Vec<u8>, usize)> {
             let v1 = Self {
                 uri: "http:".into(),
@@ -30,5 +35,5 @@ mod tests {
         }
     }
 
-    varint_struct_test!(GoAway);
+    varint_struct_test!(Goaway);
 }

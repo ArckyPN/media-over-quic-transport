@@ -260,7 +260,7 @@ impl VarInt for Number {
     }
 }
 
-/// Error when [VarInt](crate::VarInt) implementation fails.
+/// Error when [VarInt] implementation fails.
 #[derive(Debug, Snafu, PartialEq, Clone)]
 pub enum NumberError<U>
 where

@@ -2,11 +2,17 @@ use varint::{VarInt, x};
 
 use crate::types::{error_code, reason_phrase::ReasonPhrase};
 
+/// TODO docs
 #[derive(Debug, VarInt, PartialEq, Clone)]
+#[varint::draft_ref(v = 14)]
 pub struct PublishDone {
+    /// TODO docs
     request_id: x!(i),
+    /// TODO docs
     status_code: error_code::PublishDone,
+    /// TODO docs
     stream_count: x!(i),
+    /// TODO docs
     error_reason: ReasonPhrase,
 }
 
