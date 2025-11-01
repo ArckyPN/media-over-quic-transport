@@ -47,11 +47,11 @@ mod sub {
                 $(#[$attrss])*
                 pub struct [< $name $ty >] {
                     /// The Request ID associated with this Error
-                    request_id: varint::x!(i),
+                    pub request_id: varint::x!(i),
                     /// The Status Code
-                    code: $crate::types::error_code::$name,
+                    pub code: $crate::types::error_code::$name,
                     /// Status Message
-                    reason: $crate::types::reason_phrase::ReasonPhrase,
+                    pub reason: $crate::types::reason_phrase::ReasonPhrase,
                 }
 
                 impl [< $name $ty >] {

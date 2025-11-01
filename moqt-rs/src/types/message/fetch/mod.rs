@@ -12,30 +12,62 @@ use {
     varint::{VarInt, x},
 };
 
-/// TODO docs
+/// Request Objects that have already been published.
+///
+/// There are three types of Fetches:
+///
+/// # Standalone Fetch
+///
+/// Independently fetching objects from a Track with
+/// a specified range of objects.
+///
+/// # Relative Joining Fetch
+///
+/// Join an existing Subscription with a relative
+/// starting point, i.e. the number of Groups before
+/// the current one.
+///
+/// # Absolute Joining Fetch
+///
+/// Join an existing Subscription from a specific
+/// starting point, i.e. the specific Group to
+/// start from.
+///
+/// ---
+///
+/// In both Joining Fetch cases the Publisher will
+/// send past Object until the active Subscription
+/// point has been reached. From there the Fetch
+/// ends and the Subscribe takes over.
 #[derive(Debug, VarInt, PartialEq, Clone)]
 #[varint::draft_ref(v = 14)]
 #[varint(parameters(auth_token))]
 pub struct Fetch {
-    /// TODO docs
-    request_id: x!(i),
-    /// TODO docs
-    subscriber_priority: x!(8),
-    /// TODO docs
-    group_order: GroupOrder,
-    /// TODO docs
-    fetch_type: FetchType,
-    /// TODO docs
+    /// The Request ID associated with this Fetch
+    pub request_id: x!(i),
+    /// Sets a priority in relation to all Fetches
+    /// and Subscribes in the current Session.
+    ///
+    /// Lower means higher priority.
+    pub subscriber_priority: x!(8),
+    /// The order in which to receive Groups.
+    /// See [GroupOrder].
+    pub group_order: GroupOrder,
+    /// The type of Fetch. See [FetchType].
+    pub fetch_type: FetchType,
+    /// Some when `fetch_type` is [FetchType::Standalone].
+    /// Otherwise None.
+    /// See [StandaloneFetch].
     #[varint(when(fetch_type = 0x1))]
-    standalone: x!([StandaloneFetch]),
-    /// TODO docs
+    pub standalone: x!([StandaloneFetch]),
+    /// Some when `fetch_type` is [FetchType::RelativeJoining]
+    /// or [FetchType::AbsoluteJoining].
+    /// Otherwise None. See [JoiningFetch].
     #[varint(when(fetch_type = 0x2 || 0x3))]
-    joining: x!([JoiningFetch]),
-    /// TODO docs
-    parameters: Parameters,
+    pub joining: x!([JoiningFetch]),
+    /// Map of parameters. See [Parameters].
+    pub parameters: Parameters,
 }
-
-// TODO impls for usability
 
 #[cfg(test)]
 mod tests {

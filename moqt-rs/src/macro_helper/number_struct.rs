@@ -41,7 +41,7 @@ mod sub {
             #[derive(Debug, VarInt, PartialEq, Clone)]
             pub struct $name {
                 $(#[$attrs])*
-                $field: varint::x!(i),
+                pub $field: varint::x!(i),
             }
 
             impl $name {

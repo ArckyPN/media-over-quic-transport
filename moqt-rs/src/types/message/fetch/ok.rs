@@ -6,23 +6,27 @@ use crate::types::{
     misc::{EndOfTrack, GroupOrder},
 };
 
-/// TODO docs
+/// Response to a successful [Fetch](crate::types::message::Fetch)
+/// Message.
 #[derive(Debug, VarInt, PartialEq, Clone)]
 #[varint::draft_ref(v = 14)]
 #[varint(parameters(max_cache_duration))]
 pub struct FetchOk {
-    /// TODO docs
-    request_id: x!(i),
-    /// TODO docs
-    group_order: GroupOrder,
-    /// TODO docs
-    end_of_track: EndOfTrack,
-    /// TODO docs
-    end_location: Location,
-    // TODO docs
-    parameters: Parameters,
+    /// The associated Request ID.
+    pub request_id: x!(i),
+    /// The order in which Groups will be
+    /// sent. See [GroupOrder].
+    pub group_order: GroupOrder,
+    /// Indicates whether this Track has
+    /// ended or is still receiving new
+    /// Objects. See [EndOfTrack].
+    pub end_of_track: EndOfTrack,
+    /// The largest Objects covered by this
+    /// Fetch. See [Location],
+    pub end_location: Location,
+    /// Map of parameters. See [Parameters].
+    pub parameters: Parameters,
 }
-// TODO impls for usability
 
 impl FetchOk {
     pub fn new<ID, G, E, L>(
