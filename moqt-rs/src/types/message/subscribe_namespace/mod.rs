@@ -8,21 +8,23 @@ pub use un::UnsubscribeNamespace;
 
 use varint::{VarInt, x};
 
-use crate::types::track;
+use crate::types::{Parameters, track};
 
 /// TODO docs
 #[derive(Debug, VarInt, PartialEq, Clone)]
 #[varint::draft_ref(v = 14)]
+#[varint(parameters(auth_token))]
 pub struct SubscribeNamespace {
     /// TODO docs
     request_id: x!(i),
     /// TODO docs
     namespace_prefix: track::Namespace,
-    // TODO parameters
+    // TODO docs
+    parameters: Parameters,
 }
 
 impl SubscribeNamespace {
-    pub fn new<ID, N>(id: ID, namespace: N) -> Self
+    pub fn new<ID, N>(id: ID, namespace: N, params: Option<Parameters>) -> Self
     where
         ID: Into<x!(i)>,
         N: Into<track::Namespace>,
@@ -30,6 +32,7 @@ impl SubscribeNamespace {
         Self {
             request_id: id.into(),
             namespace_prefix: namespace.into(),
+            parameters: params.unwrap_or_default(),
         }
     }
 }
@@ -42,16 +45,15 @@ mod tests {
 
     impl TestData for SubscribeNamespace {
         fn test_data() -> Vec<(Self, Vec<u8>, usize)> {
-            let v1 = Self::new(15u8, ["num", "boom"]);
+            let v1 = Self::new(15u8, ["num", "boom"], None);
             let b1 = vec![
                 15, // request id: 15
                 2,  // 2 element tuple
                 3,  // first tuple len 3
                 b'n', b'u', b'm', // tuple "num"
                 4,    // second tuple len 4
-                b'b', b'o', b'o',
-                b'm', // second tuple "boom"
-                      // TODO parameters
+                b'b', b'o', b'o', b'm', // second tuple "boom"
+                0,    // no parameters
             ];
             let l1 = b1.len() * 8;
 

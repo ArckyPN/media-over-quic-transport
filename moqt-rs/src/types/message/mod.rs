@@ -109,6 +109,7 @@ mod tests {
                 4,    //
                 3,    // num versions,
                 1, 2, 3, // version
+                   // TODO parameters
             ];
             let l2 = b2.len() * 8;
 
@@ -121,14 +122,14 @@ mod tests {
             let b3 = vec![
                 0x4, // Subscribe Ok
                 0,   // payload length
-                5,   //
+                6,   //
                 9,   // ID 9
                 13,  // track alias 13
                 10,  // expires in 10ms
                 0,   // original group order
                 0,   // content doesn't exist
-                     // largest loc not needed
-                     // TODO parameters
+                // largest loc not needed
+                0, // no parameters
             ];
             let l3 = b3.len() * 8;
 

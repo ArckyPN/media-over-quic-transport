@@ -1,9 +1,16 @@
-use proc_macro_error2::abort;
-use proc_macro2::TokenStream;
-use quote::{ToTokens, format_ident, quote};
-use syn::{ spanned::Spanned, token::Brace, Expr, FieldsNamed, Ident, PathArguments, Type, TypePath};
+mod attrs;
 
-use crate::{crate_name, utils::attributes::StructFieldAttributes};
+pub(crate) use attrs::Getter;
+
+use attrs::{StructAttrs, setup, general};
+
+use proc_macro_error2::{abort};
+use proc_macro2::TokenStream;
+use quote::{format_ident, quote, ToTokens, TokenStreamExt};
+use syn::{  spanned::Spanned, token::Brace, Attribute, Expr, FieldsNamed, Ident, PathArguments, Type, TypePath};
+
+use crate::{crate_name,  utils::attributes::StructFieldAttributes};
+
 
 pub struct ImplStruct {
     /// name of the struct being derived upon
@@ -12,6 +19,10 @@ pub struct ImplStruct {
     /// name of the crate
     varint: Ident,
 
+    /// attributes of the struct
+    attr: StructAttrs,
+
+    // TODO make separate structs for each use case and split them into specific ToTokens
     /// names of the fields
     field_names: Vec<Ident>,
 
@@ -23,10 +34,13 @@ pub struct ImplStruct {
 }
 
 impl ImplStruct {
-    pub fn new(name: &Ident, fields: &FieldsNamed) -> Self {
+    pub fn new(name: &Ident, attrs: &[Attribute], fields: &FieldsNamed) -> Self {
         let mut field_names = Vec::new();
         let mut field_tys = Vec::new();
         let mut field_attrs = Vec::new();
+
+        let attr = StructAttrs::new(attrs, fields);
+        
         for field in &fields.named {
             field_tys.push(field.ty.clone());
 
@@ -46,7 +60,7 @@ impl ImplStruct {
             field_attrs.push(attr);
         }
 
-        Self { name: name.clone(), varint: crate_name(), field_names, field_tys, field_attrs }
+        Self { name: name.clone(), varint: crate_name(), attr, field_names, field_tys, field_attrs }
     }
 
     fn field_length_decoders(&self) -> Vec<TokenStream> {
@@ -228,6 +242,8 @@ impl ImplStruct {
         let len_bits = self.len_bits();
         let length_required = self.length_required();
 
+        let impl_param_accessor = self.attr.quote(name);
+
         let length_arg = if length_required {
             format_ident!("length")
         } else {
@@ -308,6 +324,8 @@ impl ImplStruct {
                 #length_required
             }
         }.to_tokens(tokens);});
+
+        impl_param_accessor.to_tokens(tokens);
     }
 }
 

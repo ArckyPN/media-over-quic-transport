@@ -2,20 +2,20 @@ mod cancel;
 mod error;
 mod ok;
 
-pub use cancel::FetchCancel;
-pub use error::FetchError;
-pub use ok::FetchOk;
+pub use {cancel::FetchCancel, error::FetchError, ok::FetchOk};
 
-use crate::types::{
-    misc::{FetchType, GroupOrder, JoiningFetch, StandaloneFetch},
-    parameter::Parameters,
+use {
+    crate::types::{
+        Parameters,
+        misc::{FetchType, GroupOrder, JoiningFetch, StandaloneFetch},
+    },
+    varint::{VarInt, x},
 };
-
-use varint::{VarInt, x};
 
 /// TODO docs
 #[derive(Debug, VarInt, PartialEq, Clone)]
 #[varint::draft_ref(v = 14)]
+#[varint(parameters(auth_token))]
 pub struct Fetch {
     /// TODO docs
     request_id: x!(i),

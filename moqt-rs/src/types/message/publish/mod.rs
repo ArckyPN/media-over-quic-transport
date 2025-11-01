@@ -9,6 +9,7 @@ pub use ok::PublishOk;
 use varint::{VarInt, x};
 
 use crate::types::{
+    Parameters,
     location::Location,
     misc::{ContentExists, Forward, GroupOrder},
     track,
@@ -17,6 +18,7 @@ use crate::types::{
 /// TODO docs
 #[derive(Debug, VarInt, PartialEq, Clone)]
 #[varint::draft_ref(v = 14)]
+#[varint(parameters(auth_token, max_cache_duration))]
 pub struct Publish {
     /// TODO docs
     request_id: x!(i),
@@ -35,7 +37,8 @@ pub struct Publish {
     largest_location: x!([Location]),
     /// TODO docs
     forward: Forward,
-    // TODO parameters
+    // TODO docs
+    parameters: Parameters,
 }
 // TODO impls for usability
 
@@ -56,6 +59,7 @@ mod tests {
                 content_exists: ContentExists::No,
                 largest_location: None,
                 forward: Forward::Enabled,
+                parameters: Default::default(),
             };
             let b1 = vec![
                 9, // ID 9
@@ -69,6 +73,7 @@ mod tests {
                 0,    // content doesn't exist
                 // larger loc not needed
                 1, // forward enabled
+                0, // no parameters
             ];
             let l1 = b1.len() * 8;
 
@@ -81,6 +86,7 @@ mod tests {
                 content_exists: ContentExists::Yes,
                 largest_location: Some((43u8, 15u8).into()),
                 forward: Forward::Enabled,
+                parameters: Default::default(),
             };
             let b2 = vec![
                 9, // ID 9
@@ -95,6 +101,7 @@ mod tests {
                 43,   // largest group
                 15,   // largest object
                 1,    // forward enabled
+                0,    // no parameters
             ];
             let l2 = b2.len() * 8;
 

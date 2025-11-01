@@ -12,10 +12,6 @@ mod token;
 pub use param::Parameter;
 pub use token::Token;
 
-// TODO Token has param type 0x03, may appear in CLIENT_SETUP, SERVER_SETUP, PUBLISH, SUBSCRIBE, SUBSCRIBE_UPDATE, SUBSCRIBE_NAMESPACE, PUBLISH_NAMESPACE, TRACK_STATUS or FETCH
-// TODO DELIVERY TIMEOUT Parameter
-// TODO MAX CACHE DURATION Parameter
-
 /// Parameters is an abstraction of the
 /// Key-Value-Pair Structure from the [Draft](https://www.ietf.org/archive/id/draft-ietf-moq-transport-14.html#name-key-value-pair-structure).
 #[derive(Clone, Default, PartialEq)]
@@ -37,14 +33,26 @@ impl Parameters {
         self.inner.insert(key.into(), value.into())
     }
 
-    // pub fn get<K>(&self, key: &K) -> Option<&Parameter>
-    // where
-    //     K: Into<x!(i)>,
-    // {
-    //     self.inner.get(&*key.into())
-    // }
+    pub fn get<K>(&self, key: K) -> Option<&Parameter>
+    where
+        K: Into<x!(i)>,
+    {
+        self.inner.get(&key.into())
+    }
+
+    pub fn get_mut<K>(&mut self, key: K) -> Option<&mut Parameter>
+    where
+        K: Into<x!(i)>,
+    {
+        self.inner.get_mut(&key.into())
+    }
+
     pub fn len(&self) -> usize {
         self.inner.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 }
 
@@ -104,6 +112,7 @@ impl VarInt for Parameters {
 
             let param = Parameter::read(reader, ty.number(), &mut bits)?;
 
+            // TODO validate if can actually be added
             this.insert(ty, param);
         }
 
@@ -128,7 +137,17 @@ impl VarInt for Parameters {
     }
 
     fn len_bits(&self) -> usize {
-        todo!("Parameters len bits")
+        let mut bits = 0;
+
+        let num_params = self.len();
+        bits += <x!(i)>::try_from(num_params).expect("# TODO ").len_bits();
+
+        for (k, v) in self {
+            bits += k.len_bits();
+            bits += v.len_bits();
+        }
+
+        bits
     }
 
     fn length_required() -> bool {

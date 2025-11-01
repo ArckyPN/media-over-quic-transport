@@ -1,10 +1,15 @@
 use varint::{VarInt, x};
 
-use crate::types::{location::Location, misc::EndOfTrack, misc::GroupOrder};
+use crate::types::{
+    Parameters,
+    location::Location,
+    misc::{EndOfTrack, GroupOrder},
+};
 
 /// TODO docs
 #[derive(Debug, VarInt, PartialEq, Clone)]
 #[varint::draft_ref(v = 14)]
+#[varint(parameters(max_cache_duration))]
 pub struct FetchOk {
     /// TODO docs
     request_id: x!(i),
@@ -14,12 +19,19 @@ pub struct FetchOk {
     end_of_track: EndOfTrack,
     /// TODO docs
     end_location: Location,
-    // TODO parameters
+    // TODO docs
+    parameters: Parameters,
 }
 // TODO impls for usability
 
 impl FetchOk {
-    pub fn new<ID, G, E, L>(id: ID, group_order: G, end_of_track: E, end_location: L) -> Self
+    pub fn new<ID, G, E, L>(
+        id: ID,
+        group_order: G,
+        end_of_track: E,
+        end_location: L,
+        params: Option<Parameters>,
+    ) -> Self
     where
         ID: Into<x!(i)>,
         G: Into<GroupOrder>,
@@ -31,6 +43,7 @@ impl FetchOk {
             group_order: group_order.into(),
             end_of_track: end_of_track.into(),
             end_location: end_location.into(),
+            parameters: params.unwrap_or_default(),
         }
     }
 }
@@ -43,13 +56,20 @@ mod tests {
 
     impl TestData for FetchOk {
         fn test_data() -> Vec<(Self, Vec<u8>, usize)> {
-            let v1 = Self::new(4u8, GroupOrder::Original, EndOfTrack::True, (54u8, 3u8));
+            let v1 = Self::new(
+                4u8,
+                GroupOrder::Original,
+                EndOfTrack::True,
+                (54u8, 3u8),
+                None,
+            );
             let b1 = vec![
                 4,  // ID
                 0,  // original group order
                 1,  // is end of track
                 54, // end group
                 3,  //end object
+                0,  // no parameters
             ];
             let l1 = b1.len() * 8;
 

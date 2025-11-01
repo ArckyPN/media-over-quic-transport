@@ -247,6 +247,7 @@ impl ImplEnum {
 
         let len_bits = self.len_bits();
 
+        // TODO impl a function which return the value of an variant
         quote! {
             impl #varint::VarInt for #name
         }

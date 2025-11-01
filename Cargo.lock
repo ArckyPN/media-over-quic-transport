@@ -490,6 +490,7 @@ version = "0.0.1"
 dependencies = [
  "convert_case",
  "darling",
+ "paste",
  "proc-macro-crate",
  "proc-macro-error2",
  "proc-macro2",

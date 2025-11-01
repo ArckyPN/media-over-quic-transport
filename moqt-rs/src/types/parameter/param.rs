@@ -74,6 +74,19 @@ impl Parameter {
             }
         })
     }
+
+    pub(crate) fn len_bits(&self) -> usize {
+        match self {
+            Self::Number(n) => n.len_bits(),
+            Self::Bytes(b) => b.len_bits(),
+            Self::DeliveryTimeout(d) | Self::MaxCacheDuration(d) => {
+                <x!(i)>::try_from(d.as_millis())
+                    .expect("# TODO ")
+                    .len_bits()
+            }
+            Self::AuthorizationToken(t) => t.len_bits(),
+        }
+    }
 }
 
 impl Debug for Parameter {

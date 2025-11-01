@@ -11,6 +11,7 @@ pub use update::SubscribeUpdate;
 use varint::{VarInt, x};
 
 use crate::types::{
+    Parameters,
     location::Location,
     misc::{ContentExists, FilterType, Forward, GroupOrder},
     track,
@@ -19,6 +20,7 @@ use crate::types::{
 /// TODO docs
 #[derive(Debug, VarInt, PartialEq, Clone)]
 #[varint::draft_ref(v = 14)]
+#[varint(parameters(auth_token, delivery_timeout))]
 pub struct Subscribe {
     /// TODO docs
     request_id: x!(i),
@@ -40,7 +42,8 @@ pub struct Subscribe {
     /// TODO docs
     #[varint(when(filter_type = 0x4))]
     end_group: x!([i]),
-    // TODO parameters
+    // TODO doc
+    parameters: Parameters,
 }
 
 #[cfg(test)]
@@ -61,6 +64,7 @@ mod tests {
                 filter_type: FilterType::AbsoluteStart,
                 start_location: Some((5u8, 1u8).into()),
                 end_group: None,
+                parameters: Default::default(),
             };
             let b1 = [
                 vec![
@@ -84,8 +88,8 @@ mod tests {
                     3,  // filter type absolute start
                     5,  // start group 5 (location)
                     1,  // start object 1 (location)
-                        // end group not needed because filter 3
-                        //   TODO add parameters
+                    // end group not needed because filter 3
+                    0, // no parameters
                 ],
             ]
             .concat();

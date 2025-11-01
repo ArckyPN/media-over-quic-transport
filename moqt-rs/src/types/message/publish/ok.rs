@@ -1,6 +1,7 @@
 use varint::{VarInt, x};
 
 use crate::types::{
+    Parameters,
     location::Location,
     misc::{FilterType, Forward, GroupOrder},
 };
@@ -8,6 +9,7 @@ use crate::types::{
 /// TODO docs
 #[derive(Debug, VarInt, PartialEq, Clone)]
 #[varint::draft_ref(v = 14)]
+#[varint(parameters(delivery_timeout))]
 pub struct PublishOk {
     /// TODO docs
     request_id: x!(i),
@@ -25,7 +27,8 @@ pub struct PublishOk {
     /// TODO docs
     #[varint(when(filter_type = 0x4))]
     end_group: x!([i]),
-    // TODO parameters
+    // TODO docs
+    parameters: Parameters,
 }
 // TODO impls for usability
 
@@ -45,6 +48,7 @@ mod tests {
                 filter_type: FilterType::AbsoluteRange,
                 start_location: Some((3u8, 1u8).into()),
                 end_group: Some(50u8.into()),
+                parameters: Default::default(),
             };
             let b1 = vec![
                 9,  // ID 9
@@ -55,6 +59,7 @@ mod tests {
                 3,  // start group 3
                 1,  // start object 1
                 50, // end group 50
+                0,  // no parameters
             ];
             let l1 = b1.len() * 8;
 
@@ -66,6 +71,7 @@ mod tests {
                 filter_type: FilterType::AbsoluteStart,
                 start_location: Some((1u8, 1u8).into()),
                 end_group: None,
+                parameters: Default::default(),
             };
             let b2 = vec![
                 10, // ID
@@ -75,7 +81,8 @@ mod tests {
                 3,  // absolute start
                 1,  // start group
                 1,  // start object
-                    // end group not needed
+                // end group not needed
+                0, // no parameters
             ];
             let l2 = b2.len() * 8;
 
@@ -87,6 +94,7 @@ mod tests {
                 filter_type: FilterType::NextGroupStart,
                 start_location: None,
                 end_group: None,
+                parameters: Default::default(),
             };
             let b3 = vec![
                 10, // ID
@@ -94,8 +102,9 @@ mod tests {
                 5,  // sub prio
                 1,  // ascending group order
                 1,  // next group start
-                    // start not needed
-                    // end group not needed
+                // start not needed
+                // end group not needed
+                0, // no parameters
             ];
             let l3 = b3.len() * 8;
 

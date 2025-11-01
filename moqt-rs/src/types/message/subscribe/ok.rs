@@ -3,6 +3,7 @@ use std::time::Duration;
 use varint::{VarInt, x};
 
 use crate::types::{
+    Parameters,
     location::Location,
     message::subscribe::{ContentExists, GroupOrder},
 };
@@ -10,6 +11,7 @@ use crate::types::{
 /// TODO docs
 #[derive(Debug, VarInt, PartialEq, Clone)]
 #[varint::draft_ref(v = 14)]
+#[varint(parameters(delivery_timeout, max_cache_duration))]
 pub struct SubscribeOk {
     /// TODO docs
     request_id: x!(i),
@@ -24,7 +26,8 @@ pub struct SubscribeOk {
     /// TODO docs
     #[varint(when(content_exists = 0x1))]
     largest_location: x!([Location]),
-    // TODO parameters
+    // TODO doc
+    parameters: Parameters,
 }
 
 impl SubscribeOk {
@@ -49,6 +52,7 @@ impl SubscribeOk {
             group_order: group.into(),
             content_exists: ContentExists::Yes,
             largest_location: location.map(Into::into),
+            parameters: Default::default(),
         }
     }
 
@@ -66,6 +70,7 @@ impl SubscribeOk {
             group_order: group.into(),
             content_exists: ContentExists::No,
             largest_location: None,
+            parameters: Default::default(),
         }
     }
 
@@ -89,8 +94,8 @@ mod tests {
                 10, // expires in 10ms
                 0,  // original group order
                 0,  // content doesn't exist
-                    // largest loc not needed
-                    // TODO parameters
+                // largest loc not needed
+                0, // no parameters
             ];
             let l1 = b1.len() * 8;
 
@@ -104,7 +109,7 @@ mod tests {
                 1,  // content exists
                 5,  // largest group
                 5,  // largest object
-                    // TODO parameters
+                0,  // no parameters
             ];
             let l2 = b2.len() * 8;
 

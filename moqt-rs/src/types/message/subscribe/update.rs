@@ -1,10 +1,11 @@
 use varint::{VarInt, x};
 
-use crate::types::location::Location;
+use crate::types::{Parameters, location::Location};
 
 /// TODO docs
 #[derive(Debug, VarInt, PartialEq, Clone)]
 #[varint::draft_ref(v = 14)]
+#[varint(parameters(auth_token, delivery_timeout))]
 pub struct SubscribeUpdate {
     /// TODO docs
     request_id: x!(i),
@@ -14,7 +15,8 @@ pub struct SubscribeUpdate {
     end_group: x!(i),
     /// TODO docs
     subscriber_priority: x!(8),
-    // TODO parameters
+    // TODO doc
+    parameters: Parameters,
 }
 
 impl SubscribeUpdate {
@@ -34,6 +36,7 @@ mod tests {
                 start_location: (13u8, 1u8).into(),
                 end_group: 50u8.into(),
                 subscriber_priority: 0.try_into().unwrap(),
+                parameters: Default::default(),
             };
             let b1 = vec![
                 9,  // ID 9
@@ -41,7 +44,7 @@ mod tests {
                 1,  // start object 1
                 50, // end group 50
                 0,  // sub prio
-                    // TODO parameters
+                0,  // no parameters
             ];
             let l1 = b1.len() * 8;
 

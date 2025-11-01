@@ -28,7 +28,7 @@ const VARINT_CRATE: &str = "varintege-rs";
 // TODO for errors: https://docs.rs/proc-macro-error2/2.0.1/proc_macro_error2/index.html#guide
 
 /// TODO docs
-#[proc_macro_derive(VarInt, attributes(varint, blub))]
+#[proc_macro_derive(VarInt, attributes(varint))]
 #[proc_macro_error]
 pub fn derive_var_int(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -38,7 +38,7 @@ pub fn derive_var_int(input: proc_macro::TokenStream) -> proc_macro::TokenStream
         Data::Struct(DataStruct {
             fields: Fields::Named(fields),
             ..
-        }) => ImplStruct::new(name_ident, fields).to_token_stream(),
+        }) => ImplStruct::new(name_ident, &input.attrs, fields).to_token_stream(),
         Data::Enum(e) => ImplEnum::new(name_ident, e, &input.attrs).to_token_stream(),
         _ => abort_call_site!("VarInt only supports non-tuple structs and enums"),
     }
@@ -123,7 +123,6 @@ pub fn x(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 #[proc_macro_error]
 pub fn varint_enum(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let vie = parse_macro_input!(input as VarIntEnum);
-    // vie.quote().into()
     quote! { #vie }.into()
 }
 
