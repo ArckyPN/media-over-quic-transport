@@ -1,52 +1,93 @@
 use varint::varint_enum;
 
 varint_enum! {
-    /// TODO docs
+    /// Termination code used when closing a session.
+    ///
+    /// For QUIC a CONNECTION_CLOSE frame is used
+    /// and for WebTransport a CLOSE_WEBTRANSPORT_SESSION
+    /// capsule.
+    ///
+    /// Using this code in a termination is optional.
     #[derive(Debug, PartialEq, Clone, Copy)]
     #[varint(value = x(i))]
     #[varint::draft_ref(v = 14)]
     pub enum Termination {
-        /// TODO docs
+        /// The session is being terminated without an
+        /// error.
         NoError = 0x0,
-        /// TODO docs
+        /// An implementation specific error occurred.
         InternalError = 0x1,
-        /// TODO docs
+        /// The client is not authorized to establish
+        /// a session.
         Unauthorized = 0x2,
-        /// TODO docs
+        /// The remote endpoint performed an action that
+        /// was disallowed by the specification.
         ProtocolViolation = 0x3,
-        /// TODO docs
+        /// The session was closed because the endpoint
+        /// used a Request ID that was smaller than or
+        /// equal to a previously received request ID,
+        /// or the least- significant bit of the request
+        /// ID was incorrect for the endpoint.
         InvalidRequestID = 0x4,
-        /// TODO docs
+        /// The endpoint attempted to use a Track Alias
+        /// that was already in use.
         DuplicateTrackAlias = 0x5,
-        /// TODO docs
+        /// The key-value pair has a formatting error.
         KeyValueFormattingError = 0x6,
-        /// TODO docs
+        /// The session was closed because the endpoint
+        /// used a Request ID equal to or larger than the current Maximum Request ID.
         TooManyRequests = 0x7,
-        /// TODO docs
+        /// The PATH parameter was used by a server, on
+        /// a WebTransport session, or the server does
+        /// not support the path.
         InvalidPath = 0x8,
-        /// TODO docs
+        /// The PATH parameter does not conform to the
+        /// rules in [Draft](https://www.ietf.org/archive/id/draft-ietf-moq-transport-14.html#path).
         MalformedPath = 0x9,
-        /// TODO docs
+        /// The session was closed because the peer took
+        /// too long to close the session in response to
+        /// a [Goaway](crate::types::message::Goaway)
+        /// message. See session migration in
+        /// [Draft](https://www.ietf.org/archive/id/draft-ietf-moq-transport-14.html#session-migration).
         GoAwayTimeout = 0x10,
-        /// TODO docs
+        /// The session was closed because the peer took
+        /// too long to respond to a control message.
         ControlMessageTimeout = 0x11,
-        /// TODO docs
+        /// The session was closed because the peer took
+        /// too long to send data expected on an open Data
+        /// Stream (see [Draft](https://www.ietf.org/archive/id/draft-ietf-moq-transport-14.html#data-streams)).
+        /// This includes fields of a stream header or
+        /// an object header within a data stream. If
+        /// an endpoint times out waiting for a new object
+        /// header on an open subgroup stream, it MAY
+        /// send a STOP_SENDING on that stream or terminate
+        /// the subscription.
         DataStreamTimeout = 0x12,
-        /// TODO docs
+        /// The Session limit
+        /// ([Draft](https://www.ietf.org/archive/id/draft-ietf-moq-transport-14.html#max-auth-token-cache-size))
+        /// of the size of all registered Authorization
+        /// tokens has been exceeded.
         AuthTokenCacheOverflow = 0x13,
-        /// TODO docs
+        /// Authorization Token attempted to register an
+        /// Alias that was in use
+        /// (see [Draft](https://www.ietf.org/archive/id/draft-ietf-moq-transport-14.html#authorization-token)).
         DuplicateAuthTokenAlias = 0x14,
-        /// TODO docs
+        /// The client didn't offer a version supported by
+        /// the server.
         VersionNegotiationFailed = 0x15,
-        /// TODO docs
+        /// Invalid Auth Token serialization during registration
+        /// (see [Draft](https://www.ietf.org/archive/id/draft-ietf-moq-transport-14.html#authorization-token)).
         MalformedAuthToken = 0x16,
-        /// TODO docs
+        /// No registered token found for the provided Alias
+        /// (see [Draft](https://www.ietf.org/archive/id/draft-ietf-moq-transport-14.html#authorization-token)).
         UnknownAuthTokenAlias = 0x17,
-        /// TODO docs
+        /// Authorization token has expired
+        /// (see [Draft](https://www.ietf.org/archive/id/draft-ietf-moq-transport-14.html#authorization-token)).
         ExpiredAuthToken = 0x18,
-        /// TODO docs
+        /// The specified AUTHORITY does not correspond
+        /// to this server or cannot be used in this context.
         InvalidAuthority = 0x19,
-        /// TODO docs
+        /// The AUTHORITY value is syntactically invalid.
         MalformedAuthority = 0x1A,
     }
 }

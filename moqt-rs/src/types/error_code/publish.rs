@@ -1,20 +1,26 @@
 use varint::varint_enum;
 
 varint_enum! {
-    /// TODO docs
+    /// Error Code associated with a
+    /// [PublishError](crate::types::message::PublishError) Control Message.
     #[derive(Debug, PartialEq, Clone, Copy)]
     #[varint(value = x(i))]
     #[varint::draft_ref(v = 14, error)]
     pub enum Publish {
-        /// TODO docs
+        /// An implementation specific or generic
+        /// error occurred.
         InternalError = 0x0,
-        /// TODO docs
+        /// The publisher is not authorized to
+        /// publish the given namespace or track.
         Unauthorized = 0x1,
-        /// TODO docs
+        /// The subscription could not be established
+        /// before an implementation specific timeout.
         Timeout = 0x2,
-        /// TODO docs
+        /// The endpoint does not support the
+        /// PUBLISH method.
         NotSupported = 0x3,
-        /// TODO docs
+        /// The namespace or track is not of
+        /// interest to the endpoint.
         Uninterested = 0x4,
     }
 }

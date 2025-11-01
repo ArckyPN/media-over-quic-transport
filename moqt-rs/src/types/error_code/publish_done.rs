@@ -1,26 +1,36 @@
 use varint::varint_enum;
 
 varint_enum! {
-    /// TODO docs
+    /// Error Code associated with a
+    /// [PublishDone](crate::types::message::PublishDone) Control Message.
     #[derive(Debug, PartialEq, Clone, Copy)]
     #[varint(value = x(i))]
     #[varint::draft_ref(v = 14)]
     pub enum PublishDone {
-        /// TODO docs
+        /// An implementation specific or generic
+        /// error occurred.
         InternalError = 0x0,
-        /// TODO docs
+        /// The subscriber is no longer authorized
+        /// to subscribe to the given track.
         Unauthorized = 0x1,
-        /// TODO docs
+        /// The track is no longer being published.
         TrackEnded = 0x2,
-        /// TODO docs
+        /// The publisher reached the end of an
+        /// associated Subscribe filter.
         SubscriptionEnded = 0x3,
-        /// TODO docs
+        /// The subscriber or publisher issued a
+        /// [Goaway](crate::types::message::Goaway) message.
         GoingAway = 0x4,
-        /// TODO docs
+        /// The publisher reached the timeout
+        /// specified in SUBSCRIBE_OK
         Expired = 0x5,
-        /// TODO docs
+        /// The publisher's queue of objects to
+        /// be sent to the given subscriber exceeds
+        /// its implementation defined limit.
         TooFarBehind = 0x6,
-        /// TODO docs
+        /// A relay publisher detected the track
+        /// was malformed.
+        /// (see Draft[https://www.ietf.org/archive/id/draft-ietf-moq-transport-14.html#malformed-tracks]).
         MalformedTrack = 0x7,
     }
 }

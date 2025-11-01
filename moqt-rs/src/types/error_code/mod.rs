@@ -1,4 +1,4 @@
-//! #TODO docs
+//! # Status Codes associated with specific Control Messages.
 
 mod fetch;
 mod publish;
@@ -9,11 +9,8 @@ mod subscribe_namespace;
 mod termination;
 mod track_status;
 
-pub use fetch::Fetch;
-pub use publish::Publish;
-pub use publish_done::PublishDone;
-pub use publish_namespace::PublishNamespace;
-pub use subscribe::Subscribe;
-pub use subscribe_namespace::SubscribeNamespace;
-pub use termination::Termination;
-pub use track_status::TrackStatus;
+pub use {
+    fetch::Fetch, publish::Publish, publish_done::PublishDone, publish_namespace::PublishNamespace,
+    subscribe::Subscribe, subscribe_namespace::SubscribeNamespace, termination::Termination,
+    track_status::TrackStatus,
+};
