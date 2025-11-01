@@ -1,4 +1,42 @@
 mod sub {
+    /// # Error Message Struct Constructor
+    ///
+    /// Build a public struct which has the
+    /// typical Control Message Error shape:
+    ///
+    /// ```rust
+    /// struct {
+    ///     request_id: varint::x!(i),
+    ///     code: ErrorCodeEnum,
+    ///     reason: ReasonPhrase,
+    /// }
+    /// ```
+    ///
+    /// This also generates a bunch of impl block
+    /// associated to these types.
+    ///
+    /// ## Example
+    ///
+    /// ```rust,ignore
+    /// control_message_error! {
+    ///     /// all attributes are passed through to the struct
+    ///     StructIdent + CodeType
+    /// }
+    /// ```
+    ///
+    /// ## Generated Code
+    ///
+    /// ```rust,ignore
+    /// /// all attributes are passed through to the struct
+    /// pub struct StructIdent {
+    ///     /// The Request ID associated with this Error
+    ///     request_id: varint::x!(i),
+    ///     /// The Status Code
+    ///     code: error_code::StructIdent,
+    ///     /// Status Message
+    ///     reason: ReasonPhrase,
+    /// }
+    /// ```
     macro_rules! control_message_error {
         (
             $(#[$attrss:meta])*
@@ -10,14 +48,14 @@ mod sub {
                 pub struct [< $name $ty >] {
                     /// The Request ID associated with this Error
                     request_id: varint::x!(i),
-                    /// The Error Code
+                    /// The Status Code
                     code: $crate::types::error_code::$name,
-                    /// Error Message
+                    /// Status Message
                     reason: $crate::types::reason_phrase::ReasonPhrase,
                 }
 
                 impl [< $name $ty >] {
-                    /// TODO docs
+                    /// Creates a new Instance.
                     pub fn new<ID, C, R>(id: ID, code: C, reason: R) -> Self
                     where
                         ID: Into<varint::x!(i)>,
@@ -30,8 +68,6 @@ mod sub {
                             reason: reason.into(),
                         }
                     }
-
-                    // TODO impl all stuff here for usability
                 }
             }
         };

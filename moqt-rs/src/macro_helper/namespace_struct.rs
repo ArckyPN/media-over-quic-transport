@@ -1,5 +1,32 @@
 mod sub {
-    /// TODO doc
+    /// # Namespace Struct Constructor
+    ///
+    /// Build a public struct which has only one
+    /// field of type [Namespace](crate::types::track::Namespace).
+    ///
+    /// This also generates a bunch of impl block
+    /// associated to these types.
+    ///
+    /// ## Example
+    ///
+    /// ```rust,ignore
+    /// namespace_struct! {
+    ///     /// all attributes are passed through to the struct
+    ///     StructIdent
+    ///     /// all attributes are passed through to the field
+    ///     field_ident
+    /// }
+    /// ```
+    ///
+    /// ## Generated Code
+    ///
+    /// ```rust,ignore
+    /// /// all attributes are passed through to the struct
+    /// pub struct StructIdent {
+    ///     /// all attributes are passed through to the field
+    ///     field_ident: Namespace,
+    /// }
+    /// ```
     macro_rules! namespace_struct {
         (
             $(#[$attrss:meta])*
@@ -23,8 +50,6 @@ mod sub {
                 {
                     Self::from($field)
                 }
-
-                // TODO impl all stuff here for usability
             }
 
             impl<T> From<T> for $name
