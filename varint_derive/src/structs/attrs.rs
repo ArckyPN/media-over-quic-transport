@@ -53,6 +53,7 @@ pub mod general {
 #[darling(attributes(varint))]
 pub struct StructAttrs {
     parameters: Option<general::Parameters>,
+    // TODO add and_then: Option<Path> (a fn to call after decode to validate the result)
 }
 
 impl StructAttrs {

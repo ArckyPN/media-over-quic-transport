@@ -1,12 +1,15 @@
-
-
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote, ToTokens};
-use syn::{spanned::Spanned, token::Brace, Attribute, DataEnum, Ident, Lit, Type};
+use quote::{ToTokens, format_ident, quote};
+use syn::{Attribute, DataEnum, Ident, Lit, Type, spanned::Spanned, token::Brace};
 
 use crate::{
     crate_name,
-     macro_helper::ty_vec, utils::{add_value_unique, fields::{EnumField}, attributes::{EnumAttributes, EnumVariantAttributes, FieldAttributes}},
+    macro_helper::ty_vec,
+    utils::{
+        add_value_unique,
+        attributes::{EnumAttributes, EnumVariantAttributes, FieldAttributes},
+        fields::EnumField,
+    },
 };
 
 pub struct ImplEnum {
@@ -59,7 +62,6 @@ impl ImplEnum {
         }
     }
 
-
     fn decoders(&self) -> Vec<TokenStream> {
         let varint = &self.varint;
 
@@ -81,7 +83,7 @@ impl ImplEnum {
                         )*
                         Ok(
                             (
-                                Self::#variant { #( #names ),* }, 
+                                Self::#variant { #( #names ),* },
                                 bits
                             )
                         )
@@ -100,7 +102,7 @@ impl ImplEnum {
                         )*
                         Ok(
                             (
-                                Self::#variant( #( #names ),* ), 
+                                Self::#variant( #( #names ),* ),
                                 bits
                             )
                         )
@@ -112,49 +114,58 @@ impl ImplEnum {
 
     fn encoders(&self) -> Vec<TokenStream> {
         let value_ty = &self.value_ty;
-        self.fields.iter().zip(&self.variants).zip(&self.values).map(|((field, variant), value)| {
-            let value_encoder = quote! {
-                let num = <#value_ty>::try_from(#value)?;
-                bits += num.encode(writer, None)?;
-            };
+        self.fields
+            .iter()
+            .zip(&self.variants)
+            .zip(&self.values)
+            .map(|((field, variant), value)| {
+                let value_encoder = quote! {
+                    let num = <#value_ty>::try_from(#value)?;
+                    bits += num.encode(writer, None)?;
+                };
 
-            match field {
-                EnumField::Unit => quote! {
-                    Self::#variant => {
-                        #value_encoder
-                    }
-                },
-                EnumField::Struct(s) => {
-                    let names = &s.names;  
-                    let length_handle = quote_field_attrs_encode(&s.attrs, names);                  
-                    
-                    quote! {
-                        Self::#variant { #( #names ),* } => {
+                match field {
+                    EnumField::Unit => quote! {
+                        Self::#variant => {
                             #value_encoder
-                            #(
-                                #length_handle
-                                bits += #names.encode(writer, encode_length)?;
-                            )*
+                        }
+                    },
+                    EnumField::Struct(s) => {
+                        let names = &s.names;
+                        let length_handle = quote_field_attrs_encode(&s.attrs, names);
+
+                        quote! {
+                            Self::#variant { #( #names ),* } => {
+                                #value_encoder
+                                #(
+                                    #length_handle
+                                    bits += #names.encode(writer, encode_length)?;
+                                )*
+                            }
                         }
                     }
-                },
-                EnumField::Tuples(t) => {
-                    let tys = &t.tys;
-                    let names = tys.iter().enumerate().map(|(idx,_)| format_ident!("v{}", idx)).collect::<Vec<_>>();
-                    let length_handle = quote_field_attrs_encode(&t.attrs, &names);
+                    EnumField::Tuples(t) => {
+                        let tys = &t.tys;
+                        let names = tys
+                            .iter()
+                            .enumerate()
+                            .map(|(idx, _)| format_ident!("v{}", idx))
+                            .collect::<Vec<_>>();
+                        let length_handle = quote_field_attrs_encode(&t.attrs, &names);
 
-                    quote! {
-                        Self::#variant ( #( #names ),* ) => {
-                            #value_encoder
-                            #(
-                                #length_handle
-                                bits += #names.encode(writer, encode_length)?;
-                            )*
+                        quote! {
+                            Self::#variant ( #( #names ),* ) => {
+                                #value_encoder
+                                #(
+                                    #length_handle
+                                    bits += #names.encode(writer, encode_length)?;
+                                )*
+                            }
                         }
                     }
-                },
-            }
-        }).collect()
+                }
+            })
+            .collect()
     }
 
     fn partial_eq(&self, tokens: &mut proc_macro2::TokenStream) {
@@ -162,32 +173,44 @@ impl ImplEnum {
         let variants = &self.variants;
         let fields = &self.fields;
         let values = &self.values;
-        let tys = ty_vec!(u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize);
+        let tys = ty_vec!(
+            u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize
+        );
 
-        let eq_val = tys.iter().map(|ty| {
-            let variant = variants.iter().zip(fields).map(|(variant, field)| {
-                match field {
-                    EnumField::Unit => {
-                        quote! { #variant }
-                    }
-                    EnumField::Struct(s) => {
-                        let names = &s.names;
-                        quote! { #variant { #( #names ),* } }
-                    }
-                    EnumField::Tuples(t) => {
-                        let names = t.tys.iter().enumerate().map(|(idx, _)| format_ident!("v{}", idx)).collect::<Vec<_>>();
-                        quote! { #variant ( #( #names ),* ) }
-                    }
+        let eq_val = tys
+            .iter()
+            .map(|ty| {
+                let variant = variants
+                    .iter()
+                    .zip(fields)
+                    .map(|(variant, field)| match field {
+                        EnumField::Unit => {
+                            quote! { #variant }
+                        }
+                        EnumField::Struct(s) => {
+                            let names = &s.names;
+                            quote! { #variant { #( #names ),* } }
+                        }
+                        EnumField::Tuples(t) => {
+                            let names = t
+                                .tys
+                                .iter()
+                                .enumerate()
+                                .map(|(idx, _)| format_ident!("v{}", idx))
+                                .collect::<Vec<_>>();
+                            quote! { #variant ( #( #names ),* ) }
+                        }
+                    })
+                    .collect::<Vec<_>>();
+                quote! {
+                    let val = match self {
+                        #(
+                            Self::#variant => #values as #ty
+                        ),*
+                    };
                 }
-            }).collect::<Vec<_>>();
-            quote! {
-                let val = match self {
-                    #(
-                        Self::#variant => #values as #ty
-                    ),*
-                };
-            }
-        }).collect::<Vec<_>>();
+            })
+            .collect::<Vec<_>>();
 
         quote! {
             #(
@@ -203,7 +226,8 @@ impl ImplEnum {
                     }
                 }
             )*
-        }.to_tokens(tokens);
+        }
+        .to_tokens(tokens);
     }
 
     fn len_bits(&self) -> Vec<TokenStream> {
@@ -329,18 +353,22 @@ fn quote_field_attrs_decode(attrs: &[FieldAttributes], varint: &Ident) -> Vec<To
 }
 
 fn quote_field_attrs_encode(attrs: &[FieldAttributes], names: &[Ident]) -> Vec<TokenStream> {
-    attrs.iter().zip(names).map(|(attr, name)| {
-        if let Some(length) = &attr.length {
-            quote! {
-                let len_bits = #name.len_bits();
-                let num = <#length>::try_from(len_bits / 8)?;
-                bits += num.encode(writer, None)?;
-                let encode_length = Some(len_bits);
+    attrs
+        .iter()
+        .zip(names)
+        .map(|(attr, name)| {
+            if let Some(length) = &attr.length {
+                quote! {
+                    let len_bits = #name.len_bits();
+                    let num = <#length>::try_from(len_bits / 8)?;
+                    bits += num.encode(writer, None)?;
+                    let encode_length = Some(len_bits);
+                }
+            } else {
+                quote! {
+                    let encode_length = None;
+                }
             }
-        } else {
-            quote! {
-                let encode_length = None;
-            }
-        }
-    }).collect()
+        })
+        .collect()
 }

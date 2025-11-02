@@ -10,15 +10,19 @@ varint_enum! {
         /// An implementation specific or generic
         /// error occurred.
         InternalError = 0x0,
+
         /// The publisher is not authorized to
         /// publish the given namespace or track.
         Unauthorized = 0x1,
+
         /// The subscription could not be established
         /// before an implementation specific timeout.
         Timeout = 0x2,
+
         /// The endpoint does not support the
         /// PUBLISH method.
         NotSupported = 0x3,
+
         /// The namespace or track is not of
         /// interest to the endpoint.
         Uninterested = 0x4,

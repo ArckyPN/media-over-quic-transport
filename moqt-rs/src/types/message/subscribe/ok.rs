@@ -4,30 +4,60 @@ use varint::{VarInt, x};
 
 use crate::types::{
     Parameters,
-    location::Location,
-    message::subscribe::{ContentExists, GroupOrder},
+    misc::{ContentExists, GroupOrder, Location},
 };
 
-/// TODO docs
+/// ## SubscribeOk
+///
+/// Response to a successful [Subscribe](crate::type::message::Subscribe).
 #[derive(Debug, VarInt, PartialEq, Clone)]
 #[varint::draft_ref(v = 14)]
 #[varint(parameters(delivery_timeout, max_cache_duration))]
 pub struct SubscribeOk {
-    /// TODO docs
-    request_id: x!(i),
-    /// TODO docs
-    track_alias: x!(i),
-    /// TODO docs
-    expires: x!(i),
-    /// TODO docs
-    group_order: GroupOrder,
-    /// TODO docs
-    content_exists: ContentExists,
-    /// TODO docs
+    /// ## Request ID
+    pub request_id: x!(i),
+
+    /// ## Track Alias
+    ///
+    /// The assigned Track Alias.
+    pub track_alias: x!(i),
+
+    /// ## Expiry
+    ///
+    /// Number of Milliseconds after which
+    /// the Subscription will expire.
+    ///
+    /// 0 indicates no expiration.
+    pub expires: x!(i),
+
+    /// ## Group Order
+    ///
+    /// The send order of Groups.
+    ///
+    /// [GroupOrder]
+    pub group_order: GroupOrder,
+
+    /// ## Content Exists
+    ///
+    /// Whether or not Objects have already
+    /// been published on this Track.
+    ///
+    /// [ContentExists]
+    pub content_exists: ContentExists,
+
+    /// ## Final Object
+    ///
+    /// The largest Object, if any have been
+    /// published. As indicated by `content_exists`.
+    ///
+    /// [Location]
     #[varint(when(content_exists = 0x1))]
-    largest_location: x!([Location]),
-    // TODO doc
-    parameters: Parameters,
+    pub largest_location: x!([Location]),
+
+    /// ## Parameters
+    ///
+    /// [Parameters]
+    pub parameters: Parameters,
 }
 
 impl SubscribeOk {

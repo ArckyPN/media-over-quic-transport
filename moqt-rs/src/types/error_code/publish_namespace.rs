@@ -10,22 +10,28 @@ varint_enum! {
         /// An implementation specific or generic
         /// error occurred.
         InternalError = 0x0,
+
         /// The subscriber is not authorized to
         /// announce the given namespace.
         Unauthorized = 0x1,
+
         /// The announce could not be completed
         /// before an implementation specific timeout.
         Timeout = 0x2,
+
         /// The endpoint does not support the
         /// PUBLISH_NAMESPACE method.
         NotSupported = 0x3,
+
         /// The namespace is not of interest
         /// to the endpoint.
         Uninterested = 0x4,
+
         /// Invalid Auth Token serialization during
         /// registration
         /// (see [Draft](https://www.ietf.org/archive/id/draft-ietf-moq-transport-14.html#authorization-token)).
         MalformedAuthToken = 0x10,
+
         /// Authorization token has expired (see [Draft](https://www.ietf.org/archive/id/draft-ietf-moq-transport-14.html#authorization-token)).
         ExpiredAuthToken = 0x12,
     }

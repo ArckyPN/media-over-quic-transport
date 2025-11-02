@@ -2,29 +2,48 @@ use varint::{VarInt, x};
 
 use crate::types::{
     Parameters,
-    location::Location,
-    misc::{EndOfTrack, GroupOrder},
+    misc::{EndOfTrack, GroupOrder, Location},
 };
 
+/// ## FetchOk
+///
 /// Response to a successful [Fetch](crate::types::message::Fetch)
 /// Message.
 #[derive(Debug, VarInt, PartialEq, Clone)]
 #[varint::draft_ref(v = 14)]
 #[varint(parameters(max_cache_duration))]
 pub struct FetchOk {
-    /// The associated Request ID.
+    /// ## Request ID
     pub request_id: x!(i),
+
+    /// ## Group Order
+    ///
     /// The order in which Groups will be
-    /// sent. See [GroupOrder].
+    /// sent.
+    ///
+    /// [GroupOrder]
     pub group_order: GroupOrder,
+
+    /// ## End of Track
+    ///
     /// Indicates whether this Track has
     /// ended or is still receiving new
-    /// Objects. See [EndOfTrack].
+    /// Objects.
+    ///
+    /// [EndOfTrack]
     pub end_of_track: EndOfTrack,
+
+    /// ## Final Object
+    ///
     /// The largest Objects covered by this
-    /// Fetch. See [Location],
+    /// Fetch.
+    ///
+    /// [Location]
     pub end_location: Location,
-    /// Map of parameters. See [Parameters].
+
+    /// ## Parameters
+    ///
+    /// [Parameters]
     pub parameters: Parameters,
 }
 

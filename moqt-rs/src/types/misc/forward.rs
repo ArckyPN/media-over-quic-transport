@@ -1,13 +1,21 @@
 use varint::varint_enum;
 
 varint_enum! {
-    /// TODO docs
+    /// ## Forward Toggle
+    ///
+    /// Indicates whether or not Objects are
+    /// forwarded.
     #[derive(Debug, PartialEq, Clone, Copy)]
     #[varint(value = x(8))]
     pub enum Forward {
-        /// TODO docs
+        /// ## Forward Disabled
+        ///
+        /// Objects are not to be forwarded.
         Disabled = 0x0,
-        /// TODO docs
+
+        /// ## Forward Enabled
+        ///
+        /// Objects are to be forwarded.
         Enabled = 0x1,
     }
 }

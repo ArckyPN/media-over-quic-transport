@@ -1,3 +1,5 @@
+//! Miscellaneous type required for Messages
+
 mod alias_type;
 mod content_exists;
 mod end_of_track;
@@ -6,14 +8,13 @@ mod filter_type;
 mod forward;
 mod group_order;
 mod joining_fetch;
+mod location;
+mod reason_phrase;
 mod standalone_fetch;
 
-pub use alias_type::AliasType;
-pub use content_exists::ContentExists;
-pub use end_of_track::EndOfTrack;
-pub use fetch_type::FetchType;
-pub use filter_type::FilterType;
-pub use forward::Forward;
-pub use group_order::GroupOrder;
-pub use joining_fetch::JoiningFetch;
-pub use standalone_fetch::StandaloneFetch;
+pub use {
+    alias_type::AliasType, content_exists::ContentExists, end_of_track::EndOfTrack,
+    fetch_type::FetchType, filter_type::FilterType, forward::Forward, group_order::GroupOrder,
+    joining_fetch::JoiningFetch, location::Location, reason_phrase::ReasonPhrase,
+    standalone_fetch::StandaloneFetch,
+};

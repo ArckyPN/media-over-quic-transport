@@ -1,22 +1,45 @@
 use varint::{VarInt, x};
 
-use crate::types::{Parameters, location::Location};
+use crate::types::{Parameters, misc::Location};
 
-/// TODO docs
+/// ## SubscribeUpdate
+///
+/// Modify an active [Subscribe](crate::type::message::Subscribe).
+///
+/// A Subscription can only be narrowed and not widened, i.e.
+/// `start_location` must not decrease and `end_group`
+/// must not increase.
 #[derive(Debug, VarInt, PartialEq, Clone)]
 #[varint::draft_ref(v = 14)]
 #[varint(parameters(auth_token, delivery_timeout))]
 pub struct SubscribeUpdate {
-    /// TODO docs
-    request_id: x!(i),
-    /// TODO docs
-    start_location: Location,
-    /// TODO docs
-    end_group: x!(i),
-    /// TODO docs
-    subscriber_priority: x!(8),
-    // TODO doc
-    parameters: Parameters,
+    /// ## Request ID
+    pub request_id: x!(i),
+
+    /// ## First Object
+    ///
+    /// The new starting Object.
+    ///
+    /// [Location]
+    pub start_location: Location,
+
+    /// ## Final Group
+    ///
+    /// The new final Group.
+    pub end_group: x!(i),
+
+    /// ## Subscriber Priority
+    ///
+    /// Sets a priority in relation to all Fetches
+    /// and Subscribes in the current Session.
+    ///
+    /// Lower means higher priority.
+    pub subscriber_priority: x!(8),
+
+    /// ## Parameters
+    ///
+    /// [Parameters]
+    pub parameters: Parameters,
 }
 
 impl SubscribeUpdate {

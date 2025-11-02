@@ -9,9 +9,10 @@ use varint::{Error, VarInt, x};
 mod param;
 mod token;
 
-pub use param::Parameter;
-pub use token::Token;
+pub use {param::Parameter, token::Token};
 
+/// ## Parameters Key-Value-Pairs
+///
 /// Parameters is an abstraction of the
 /// Key-Value-Pair Structure from the [Draft](https://www.ietf.org/archive/id/draft-ietf-moq-transport-14.html#name-key-value-pair-structure).
 #[derive(Clone, Default, PartialEq)]
@@ -24,7 +25,6 @@ impl Parameters {
         Self::default()
     }
 
-    // TODO impls
     pub fn insert<K, V>(&mut self, key: K, value: V) -> Option<Parameter>
     where
         K: Into<x!(i)>,

@@ -1,6 +1,6 @@
-//! Control Messages
+//! # Control Messages
 //!
-//! # TODO docs
+//! This module contains all Control Messages.
 
 mod fetch;
 mod go_away;
@@ -35,6 +35,9 @@ varint_enum! {
     length {
         tuple[0] = x(16)
     }
+    /// ## Control Messages
+    ///
+    /// All possible Control Messages.
     #[derive(Debug, PartialEq, Clone)]
     #[varint(value = x(i))]
     #[varint::draft_ref(v = 14, rename = "control-messages")]

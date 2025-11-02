@@ -12,38 +12,127 @@ use varint::{VarInt, x};
 
 use crate::types::{
     Parameters,
-    location::Location,
-    misc::{ContentExists, FilterType, Forward, GroupOrder},
+    misc::{FilterType, Forward, GroupOrder, Location},
     track,
 };
 
-/// TODO docs
+/// ## Subscribe
+///
+/// Request Objects from an ongoing Track.
+///
+/// There are four types of Subscribe,
+/// indicated by the [FilterType]:
+///
+/// ### NextGroupStart
+///
+/// The first Object received will be the
+/// first Object of the next published
+/// Group.
+///
+/// This Subscription is open-ended.
+///
+/// ### LargestObject
+///
+/// The first Object received will be the
+/// next published Object of the current
+/// Group.
+///
+/// This Subscription is open-ended.
+///
+/// ### AbsoluteStart
+///
+/// The first Object received will be the one
+/// specified by the Subscribe message.
+///
+/// This Subscription is open-ended.
+///
+/// ### AbsoluteRange
+///
+/// The Subscription will be active for the
+/// specified range of Objects.
 #[derive(Debug, VarInt, PartialEq, Clone)]
 #[varint::draft_ref(v = 14)]
 #[varint(parameters(auth_token, delivery_timeout))]
 pub struct Subscribe {
-    /// TODO docs
-    request_id: x!(i),
-    /// TODO docs
-    track_namespace: track::Namespace,
-    /// TODO docs
-    track_name: track::Name,
-    /// TODO docs
-    subscriber_priority: x!(8),
-    /// TODO docs
-    group_order: GroupOrder,
-    /// TODO docs
-    forward: Forward,
-    /// TODO docs
-    filter_type: FilterType,
-    /// TODO docs
+    /// ## Request ID
+    pub request_id: x!(i),
+
+    /// ## Track Namespace
+    ///
+    /// The Namespace of the Track.
+    ///
+    /// [Namespace](track::Namespace)
+    pub track_namespace: track::Namespace,
+
+    /// ## Track Name
+    ///
+    /// The Name of the Track.
+    ///
+    /// [Name](track::Name)
+    pub track_name: track::Name,
+
+    /// ## Subscriber Priority
+    ///
+    /// Sets a priority in relation to all Fetches
+    /// and Subscribes in the current Session.
+    ///
+    /// Lower means higher priority.
+    pub subscriber_priority: x!(8),
+
+    /// ## Group Order
+    ///
+    /// Indicates the requested order of Group.
+    pub group_order: GroupOrder,
+
+    /// ## Forward Mode
+    ///
+    /// Indicates the forwarding mode.
+    ///
+    /// - [Enabled](Forward::Enabled):
+    /// Objects will be transmitted
+    /// - [Disabled](Forward::Disabled):
+    /// Object will not be transmitted
+    ///
+    /// [Forward]
+    pub forward: Forward,
+
+    /// ## Filter Type
+    ///
+    /// Indicates the Subscribe mode.
+    ///
+    /// [FilterType]
+    pub filter_type: FilterType,
+
+    /// ## First Object
+    ///
+    /// Specifies the first Object.
+    ///
+    /// Some when `filter_type` is:
+    ///
+    /// * [AbsoluteStart](FilterType::AbsoluteStart)
+    /// * [AbsoluteRange](FilterType::AbsoluteRange)
+    ///
+    /// Otherwise None.
+    ///
+    /// [Location]
     #[varint(when(filter_type = 0x3 || 0x4))]
-    start_location: x!([Location]),
-    /// TODO docs
+    pub start_location: x!([Location]),
+
+    /// ## Final Group
+    ///
+    /// Specifies the final Group.
+    ///
+    /// Some when `filter_type` is:
+    /// * [AbsoluteRange](FilterType::AbsoluteRange)
+    ///
+    /// Otherwise None.
     #[varint(when(filter_type = 0x4))]
-    end_group: x!([i]),
-    // TODO doc
-    parameters: Parameters,
+    pub end_group: x!([i]),
+
+    /// ## Parameters
+    ///
+    /// [Parameters]
+    pub parameters: Parameters,
 }
 
 #[cfg(test)]

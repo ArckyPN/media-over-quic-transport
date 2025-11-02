@@ -9,41 +9,52 @@ varint_enum! {
         /// An implementation specific or generic
         /// error occurred.
         InternalError = 0x0,
+
         /// The subscriber is not authorized to
         /// fetch from the given track.
         Unauthorized = 0x1,
+
         /// The fetch could not be completed before
         /// an implementation specific timeout. For
         /// example, a relay could not FETCH missing
         /// objects within the timeout.
         Timeout = 0x2,
+
         /// The endpoint does not support the FETCH
         /// method.
         NotSupported = 0x3,
+
         /// The requested track is not available at the
         /// publisher.
         TrackDoesNotExist = 0x4,
+
         /// The end of the requested range is earlier
         /// than the beginning, the start of the requested
         /// range is beyond the Largest Location, or the
         /// track has not published any Objects yet.
         InvalidRange = 0x5,
+
         /// No Objects exist between the requested Start
         /// and End Locations.
         NoObjects = 0x6,
+
         /// The joining Fetch referenced a Request ID that
         /// did not belong to an active Subscription.
         InvalidJoiningRequestId = 0x7,
+
         /// The requested range contains objects with
         /// unknown status.
         UnknownStatusInRange = 0x8,
+
         /// A relay publisher detected the track was malformed
         /// (see Draft[https://www.ietf.org/archive/id/draft-ietf-moq-transport-14.html#malformed-tracks]).
         MalformedTrack = 0x9,
+
         /// Invalid Auth Token serialization during
         /// registration
         /// (see [Draft](https://www.ietf.org/archive/id/draft-ietf-moq-transport-14.html#authorization-token)).
         MalformedAuthToken = 0x10,
+
         /// Authorization token has expired
         /// (see [Draft](https://www.ietf.org/archive/id/draft-ietf-moq-transport-14.html#authorization-token)).
         ExpiredAuthToken = 0x12,

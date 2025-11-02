@@ -1,8 +1,14 @@
-use varint::{VarInt, funty::Unsigned, x};
+use varint::{VarInt, draft_ref, funty::Unsigned, x};
 
+/// ## Location
+///
+/// Identifies an Object by Group ID
+/// and Object ID.
 #[derive(Debug, VarInt, Clone, PartialEq)]
+#[draft_ref(v = 14, rename = "name-location-structure")]
 pub struct Location {
     group: x!(i),
+
     object: x!(i),
 }
 
@@ -17,7 +23,19 @@ impl Location {
             object: object.into(),
         }
     }
+
+    // pub fn try_new<G, O>(group: G, object: O) -> Self
+    // where
+    //     G: TryInto<x!(i)>,
+    //     O: TryInto<x!(i)>,
+    // {
+    //     Self {
+    //         group: group.into(),
+    //         object: object.into(),
+    //     }
+    // }
     // TODO try new with TryInto
+    // TODO set_group/object? try_set_*?
 
     pub fn group<U>(&self) -> U
     where

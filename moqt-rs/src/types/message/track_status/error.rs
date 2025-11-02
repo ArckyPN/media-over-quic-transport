@@ -1,7 +1,10 @@
 use crate::macro_helper::control_message_error;
 
 control_message_error!(
-    /// TODO docs
+    /// ## TrackStatusError
+    ///
+    /// Response to a failed [TrackStatus](crate::types::message::TrackStatus)
+    /// Message.
     #[derive(Debug, PartialEq, Clone)]
     #[varint::draft_ref(v = 14)]
     TrackStatus + Error

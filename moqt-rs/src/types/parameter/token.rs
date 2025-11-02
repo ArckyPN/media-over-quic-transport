@@ -4,18 +4,72 @@ use varint::{VarInt, x};
 
 use crate::types::misc::AliasType;
 
+/// ## Authorization Token
+///
+/// A Token delivered as [Parameter](crate::types::Parameters)
+/// used to authenticate actors in the system,
+/// whether or not they are allowed to perform
+/// the actions they are trying to do.
 #[derive(VarInt, PartialEq, Clone)]
 pub struct Token {
-    alias_typ: AliasType,
+    /// ## Token Type
+    ///
+    /// Defines how this Token is used.
+    ///
+    /// [AliasType]
+    pub alias_typ: AliasType,
+
+    /// ## Token Alias
+    ///
+    /// An ID to identify and reference a
+    /// Token Value.
+    ///
+    /// Some when `alias_type` is:
+    ///
+    /// * [Delete](AliasType::Delete)
+    /// * [Register](AliasType::Register)
+    /// * [UseAlias](AliasType::UseAlias)
+    ///
+    /// Otherwise None.
     #[varint(when(alias_typ = 0x0 || 0x1 || 0x2))]
-    alias: x!([i]),
+    pub alias: x!([i]),
+
+    /// ## Token Type
+    ///
+    /// Numeric ID of the type of Payload.
+    ///
+    /// Possible IDs are defined in [Draft](https://www.ietf.org/archive/id/draft-ietf-moq-transport-14.html#iana).
+    ///
+    /// 0 means that the type is signaled out-of-band.
+    ///
+    /// Some when `alias_type` is:
+    ///
+    /// * [Delete](AliasType::Delete)
+    /// * [UseValue](AliasType::UseValue)
+    ///
+    /// Otherwise None.
     #[varint(when(alias_typ = 0x1 || 0x3))]
-    typ: x!([i]),
+    pub typ: x!([i]), // TODO there are none defined right now. Once there this will likely be replaced by an Enum
+
+    /// ## Token Value
+    ///
+    /// The actual Token payload, serialized
+    /// as identified by `typ`.
+    ///
+    /// Some when `alias_type` is:
+    ///
+    /// * [Delete](AliasType::Delete)
+    /// * [UseValue](AliasType::UseValue)
+    ///
+    /// Otherwise None.
     #[varint(when(alias_typ = 0x1 || 0x3))]
     value: x!([..]),
 }
 
 impl Token {
+    /// ## New Delete Token
+    ///
+    /// Constructs a new Token of Delete Type.
     pub fn new_delete<A>(alias: A) -> Self
     where
         A: Into<x!(i)>,
@@ -28,6 +82,9 @@ impl Token {
         }
     }
 
+    /// ## New Register Token
+    ///
+    /// Constructs a new Token of Register Type.
     pub fn new_register<A, T, V>(alias: A, typ: T, value: V) -> Self
     where
         A: Into<x!(i)>,
@@ -42,6 +99,9 @@ impl Token {
         }
     }
 
+    /// ## New UseAlias Token
+    ///
+    /// Constructs a new Token of UseAlias Type.
     pub fn new_use_alias<A>(alias: A) -> Self
     where
         A: Into<x!(i)>,
@@ -54,6 +114,9 @@ impl Token {
         }
     }
 
+    /// ## New UseValue Token
+    ///
+    /// Constructs a new Token of UseValue Type.
     pub fn new_use_value<T, V>(typ: T, value: V) -> Self
     where
         T: Into<x!(i)>,

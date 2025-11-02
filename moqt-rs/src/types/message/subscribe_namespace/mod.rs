@@ -10,17 +10,29 @@ use varint::{VarInt, x};
 
 use crate::types::{Parameters, track};
 
-/// TODO docs
+/// ## SubscribeNamespace
+///
+/// Subscribe to a Namespace Prefix to receive
+/// all matching Namespaces, as well as future
+/// updates to them.
 #[derive(Debug, VarInt, PartialEq, Clone)]
 #[varint::draft_ref(v = 14)]
 #[varint(parameters(auth_token))]
 pub struct SubscribeNamespace {
-    /// TODO docs
-    request_id: x!(i),
-    /// TODO docs
-    namespace_prefix: track::Namespace,
-    // TODO docs
-    parameters: Parameters,
+    /// ## Request ID
+    pub request_id: x!(i),
+
+    /// ## Track Namespace Prefix
+    ///
+    /// The requested Namespace.
+    ///
+    /// [Namespace](track::Namespace)
+    pub namespace_prefix: track::Namespace,
+
+    /// ## Parameters
+    ///
+    /// [Parameters]
+    pub parameters: Parameters,
 }
 
 impl SubscribeNamespace {

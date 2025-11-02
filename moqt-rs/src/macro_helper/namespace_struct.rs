@@ -40,7 +40,9 @@ mod sub {
             #[derive(Debug, VarInt, PartialEq, Clone)]
             pub struct $name {
                 $(#[$attrs])*
-                $field: $crate::types::track::Namespace,
+                ///
+                /// [Namespace]($crate::types::track::Namespace)
+                pub $field: $crate::types::track::Namespace,
             }
 
             impl $name {

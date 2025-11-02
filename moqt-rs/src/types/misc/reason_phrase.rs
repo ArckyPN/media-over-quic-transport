@@ -1,8 +1,10 @@
 use std::fmt::Display;
 
-use varint::{VarInt, x};
+use varint::{VarInt, draft_ref, x};
 
+/// ## Reason Phrase
 #[derive(Debug, VarInt, PartialEq, Clone)]
+#[draft_ref(v = 14, rename = "name-reason-phrase-structure")]
 pub struct ReasonPhrase {
     // TODO larger than 1024 bytes is Protocol Violation
     // TODO validate it is valid utf8?

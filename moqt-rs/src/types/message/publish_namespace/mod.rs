@@ -12,17 +12,28 @@ use varint::{VarInt, x};
 
 use crate::types::{Parameters, track};
 
-/// TODO docs
+/// ## PublishNamespace
+///
+/// A Publisher advertises that it has Tracks
+/// available on the given Namespace.
 #[derive(Debug, VarInt, PartialEq, Clone)]
 #[varint::draft_ref(v = 14)]
 #[varint(parameters(auth_token))]
 pub struct PublishNamespace {
-    /// TODO docs
-    request_id: x!(i),
-    /// TODO docs
-    namespace: track::Namespace,
-    // TODO doc
-    parameters: Parameters,
+    /// ## Request ID
+    pub request_id: x!(i),
+
+    /// ## Track Namespace
+    ///
+    /// The advertised Namespace.
+    ///
+    /// [Namespace](track::Namespace)
+    pub namespace: track::Namespace,
+
+    /// ## Parameters
+    ///
+    /// [Parameters]
+    pub parameters: Parameters,
 }
 
 impl PublishNamespace {

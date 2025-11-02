@@ -1,9 +1,11 @@
 use crate::macro_helper::number_struct;
 
 number_struct! {
-    /// TODO docs
+    /// ## SubscribeNamespaceOk
+    ///
+    /// Response to a successful [SubscribeNamespace](crate::types::message::SubscribeNamespace).
     #[varint::draft_ref(v = 14)]
     SubscribeNamespaceOk
-    /// TODO docs
+    /// ## Request ID
     request_id
 }

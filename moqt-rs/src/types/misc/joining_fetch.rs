@@ -1,9 +1,26 @@
 use varint::{VarInt, x};
 
+/// ## Joining Fetch
+///
+/// Join a Subscribe with a preceding Fetch.
+///
+/// [Fetch](crate::types::message::Fetch)
 #[derive(Debug, VarInt, Clone, PartialEq)]
 pub struct JoiningFetch {
-    request_id: x!(i),
-    start: x!(i),
+    /// ## Request ID
+    ///
+    /// The associated Request ID of the
+    /// Subscribe to join.
+    pub request_id: x!(i),
+
+    /// ## Starting Group
+    ///
+    /// This is either an absolute Group ID
+    /// or a relative Group ID, depending on
+    /// the Joining Fetch type.
+    ///
+    /// [FetchType](crate::types::misc::FetchType)
+    pub start: x!(i),
 }
 
 impl JoiningFetch {
@@ -17,8 +34,6 @@ impl JoiningFetch {
             start: start.into(),
         }
     }
-
-    // TODO try new with TryInto
 }
 
 #[cfg(test)]

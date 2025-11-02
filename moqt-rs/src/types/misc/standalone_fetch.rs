@@ -1,16 +1,36 @@
 use varint::VarInt;
 
-use crate::types::{location::Location, track};
+use crate::types::{misc::Location, track};
 
+/// ## Standalone Fetch
+///
+/// Request past Objects from a Track within
+/// a specified range.
+///
+/// [Fetch](crate::types::message::Fetch)
 #[derive(Debug, VarInt, PartialEq, Clone)]
 pub struct StandaloneFetch {
-    namespace: track::Namespace,
-    name: track::Name,
-    start_location: Location,
-    end_location: Location,
+    /// ## Track Namespace
+    ///
+    /// The Namespace of the requested Track.
+    pub namespace: track::Namespace,
+
+    /// ## Track Name
+    ///
+    /// The Name of the requested Track.
+    pub name: track::Name,
+
+    /// ## First Object
+    ///
+    /// The ID of the Object to start with.
+    pub start_location: Location,
+
+    /// ## Final Object
+    ///
+    /// The ID of the Object to end with.
+    pub end_location: Location,
 }
 
-// TODO impls for usability
 impl StandaloneFetch {
     pub fn new<S, N, LS, LE>(namespace: S, name: N, start: LS, end: LE) -> Self
     where
@@ -26,8 +46,6 @@ impl StandaloneFetch {
             end_location: end.into(),
         }
     }
-
-    // TODO try new with TryInto instead
 }
 
 #[cfg(test)]

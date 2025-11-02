@@ -1,12 +1,17 @@
 use varint::{VarInt, x};
 
-/// TODO docs
+/// ## Client Setup
+///
+/// The first Message that is part of the opening
+/// handshake to initiate a MOQT Session.
 #[derive(Debug, VarInt, PartialEq, Clone)]
 #[varint::draft_ref(v = 14, rename = "client_setup-and-server_set")]
 pub struct ClientSetup {
-    /// TODO docs
+    /// ## Supported Versions
+    ///
+    /// List of the supported Versions by the Client.
     #[varint(count = x(i))]
-    supported_versions: x!(i; ...),
+    pub supported_versions: x!(i; ...),
     // TODO parameters should be an extra type
 }
 
@@ -19,8 +24,6 @@ impl ClientSetup {
             supported_versions: Vec::from_iter(versions.iter().map(|v| v.clone().into())),
         }
     }
-
-    // TODO impls for usability
 }
 
 impl<V> FromIterator<V> for ClientSetup

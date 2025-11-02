@@ -12,22 +12,24 @@ use {
     varint::{VarInt, x},
 };
 
+/// ## Fetch
+///
 /// Request Objects that have already been published.
 ///
 /// There are three types of Fetches:
 ///
-/// # Standalone Fetch
+/// ### Standalone Fetch
 ///
 /// Independently fetching objects from a Track with
 /// a specified range of objects.
 ///
-/// # Relative Joining Fetch
+/// ### Relative Joining Fetch
 ///
 /// Join an existing Subscription with a relative
 /// starting point, i.e. the number of Groups before
 /// the current one.
 ///
-/// # Absolute Joining Fetch
+/// ### Absolute Joining Fetch
 ///
 /// Join an existing Subscription from a specific
 /// starting point, i.e. the specific Group to
@@ -43,29 +45,63 @@ use {
 #[varint::draft_ref(v = 14)]
 #[varint(parameters(auth_token))]
 pub struct Fetch {
-    /// The Request ID associated with this Fetch
+    /// ## Request ID
     pub request_id: x!(i),
+
+    /// ## Subscriber Priority
+    ///
     /// Sets a priority in relation to all Fetches
     /// and Subscribes in the current Session.
     ///
     /// Lower means higher priority.
     pub subscriber_priority: x!(8),
+
+    /// ## Group Order
+    ///
     /// The order in which to receive Groups.
-    /// See [GroupOrder].
+    ///
+    /// [GroupOrder]
     pub group_order: GroupOrder,
-    /// The type of Fetch. See [FetchType].
+
+    /// ## Fetch Type
+    ///
+    /// The type of Fetch.
+    ///
+    /// [FetchType]
     pub fetch_type: FetchType,
-    /// Some when `fetch_type` is [FetchType::Standalone].
+
+    /// ## Standalone Fetch
+    ///
+    /// Payload of a Standalone Fetch.
+    ///
+    /// Some when `fetch_type` is
+    ///
+    /// * [FetchType::Standalone]
+    ///
     /// Otherwise None.
-    /// See [StandaloneFetch].
+    ///
+    /// [StandaloneFetch]
     #[varint(when(fetch_type = 0x1))]
     pub standalone: x!([StandaloneFetch]),
-    /// Some when `fetch_type` is [FetchType::RelativeJoining]
-    /// or [FetchType::AbsoluteJoining].
-    /// Otherwise None. See [JoiningFetch].
+
+    /// ## Joining Fetch
+    ///
+    /// Payload of a Joining Fetch.
+    ///
+    /// Some when `fetch_type` is:
+    ///
+    /// * [FetchType::RelativeJoining]
+    /// * [FetchType::AbsoluteJoining]
+    ///
+    /// Otherwise None.
+    ///
+    /// [JoiningFetch]
     #[varint(when(fetch_type = 0x2 || 0x3))]
     pub joining: x!([JoiningFetch]),
-    /// Map of parameters. See [Parameters].
+
+    /// ## Parameters
+    ///
+    /// [Parameters]
     pub parameters: Parameters,
 }
 

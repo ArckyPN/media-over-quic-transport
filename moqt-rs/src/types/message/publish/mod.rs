@@ -10,37 +10,79 @@ use varint::{VarInt, x};
 
 use crate::types::{
     Parameters,
-    location::Location,
-    misc::{ContentExists, Forward, GroupOrder},
+    misc::{ContentExists, Forward, GroupOrder, Location},
     track,
 };
 
-/// TODO docs
+/// ## Publish
+///
+/// Initiates the publishing of a new Track.
 #[derive(Debug, VarInt, PartialEq, Clone)]
 #[varint::draft_ref(v = 14)]
 #[varint(parameters(auth_token, max_cache_duration))]
 pub struct Publish {
-    /// TODO docs
-    request_id: x!(i),
-    /// TODO docs
-    namespace: track::Namespace,
-    /// TODO docs
-    name: track::Name,
-    /// TODO docs
-    alias: x!(i), // TODO new type track::Alias?
-    /// TODO docs
-    group_order: GroupOrder,
-    /// TODO docs
-    content_exists: ContentExists,
-    /// TODO docs
+    /// ## Request ID
+    pub request_id: x!(i),
+
+    /// ## Track Namespace
+    ///
+    /// The Namespace of the new Track.
+    ///
+    /// [Namespace](track::Namespace)
+    pub namespace: track::Namespace,
+
+    /// ## Track Name
+    ///
+    /// The Name of the new Track.
+    ///
+    /// [Name](track::Name)
+    pub name: track::Name,
+
+    /// ## Track Alias
+    ///
+    /// The Track Alias of this Track.
+    pub alias: x!(i), // TODO new type track::Alias?
+
+    /// The Order in which Groups will be published.
+    ///
+    /// [GroupOrder]
+    pub group_order: GroupOrder,
+
+    /// ## Content Exists
+    ///
+    /// Indicates whether an Object has already
+    /// been published.
+    ///
+    /// [ContentExists]
+    pub content_exists: ContentExists,
+
+    /// ## Final Object
+    ///
+    /// The Group an Object ID of the largest
+    /// Object available for this Track.
+    ///
+    /// Some when `content_exists` is:
+    ///
+    /// * [Yes](ContentExists::Yes)
+    ///
+    /// Otherwise None.
+    ///
+    /// [Location]
     #[varint(when(content_exists = 0x1))]
-    largest_location: x!([Location]),
-    /// TODO docs
-    forward: Forward,
-    // TODO docs
-    parameters: Parameters,
+    pub largest_location: x!([Location]),
+
+    /// ## Forward Mode
+    ///
+    /// Sets the mode of forwarding Objects.
+    ///
+    /// [Forward]
+    pub forward: Forward,
+
+    /// ## Parameters
+    ///
+    /// [Parameters]
+    pub parameters: Parameters,
 }
-// TODO impls for usability
 
 #[cfg(test)]
 mod tests {

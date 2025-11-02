@@ -29,12 +29,14 @@ mod sub {
     /// ```rust,ignore
     /// /// all attributes are passed through to the struct
     /// pub struct StructIdent {
-    ///     /// The Request ID associated with this Error
-    ///     request_id: varint::x!(i),
-    ///     /// The Status Code
-    ///     code: error_code::StructIdent,
-    ///     /// Status Message
-    ///     reason: ReasonPhrase,
+    ///     /// The Request ID associated with this Message.
+    ///     pub request_id: varint::x!(i),
+    ///     /// The Status Code.
+    ///     pub code: error_code::StructIdent,
+    ///     /// The Status Message.
+    ///     ///
+    ///     /// [ReasonPhrase]($crate::types::reason_phrase::ReasonPhrase)
+    ///     pub reason: ReasonPhrase,
     /// }
     /// ```
     macro_rules! control_message_error {
@@ -46,12 +48,14 @@ mod sub {
                 #[derive(varint::VarInt)]
                 $(#[$attrss])*
                 pub struct [< $name $ty >] {
-                    /// The Request ID associated with this Error
+                    /// ## Request ID
                     pub request_id: varint::x!(i),
-                    /// The Status Code
+                    /// ## Status Code
                     pub code: $crate::types::error_code::$name,
-                    /// Status Message
-                    pub reason: $crate::types::reason_phrase::ReasonPhrase,
+                    /// ## Status Message
+                    ///
+                    /// [ReasonPhrase]($crate::types::reason_phrase::ReasonPhrase)
+                    pub reason: $crate::types::misc::ReasonPhrase,
                 }
 
                 impl [< $name $ty >] {
@@ -60,7 +64,7 @@ mod sub {
                     where
                         ID: Into<varint::x!(i)>,
                         C: Into<$crate::types::error_code::$name>,
-                        R: Into<$crate::types::reason_phrase::ReasonPhrase>,
+                        R: Into<$crate::types::misc::ReasonPhrase>,
                     {
                         Self {
                             request_id: id.into(),

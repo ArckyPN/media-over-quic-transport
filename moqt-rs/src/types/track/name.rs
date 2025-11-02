@@ -2,6 +2,7 @@ use std::fmt::Display;
 
 use varint::{VarInt, x};
 
+/// ## Track Name
 #[derive(Debug, VarInt, PartialEq, Clone)]
 pub struct Name {
     #[varint(length = x(i))]

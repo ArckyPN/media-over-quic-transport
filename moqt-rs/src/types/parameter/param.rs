@@ -12,24 +12,29 @@ const MAX_CACHE_DURATION: u64 = 0x04;
 
 // TODO there are more params: https://www.ietf.org/archive/id/draft-ietf-moq-transport-14.html#name-setup-parameters
 
+// ## Version Specific Parameters
 #[derive(PartialEq, Clone)]
 pub enum Parameter {
-    /// # Type: even
+    /// # Type: `even`
     ///
     /// Generic parameter Number
     Number(x!(i)),
-    /// # Type: odd
+
+    /// # Type: `odd`
     ///
     /// Generic parameter Bytes
     Bytes(x!(b)),
+
     /// # Type: `0x02`
     ///
     ///
     DeliveryTimeout(Duration),
+
     /// # Type: `0x03`
     ///
     /// is repeatable
     AuthorizationToken(Token),
+
     /// # Type: `0x04`
     ///
     ///

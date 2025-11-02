@@ -4,13 +4,15 @@ use varint::{VarInt, x};
 // TODO
 pub enum GoawayError {}
 
+/// ## Goaway
+///
 /// A Goaway message signals that a Session is soon
 /// ending. It may contain an migration URL to allow
 /// recipients to initiate a session migration.
 #[derive(Debug, VarInt, PartialEq, Clone)]
 #[varint::draft_ref(v = 14)]
 pub struct Goaway {
-    /// # Migration URL
+    /// ## Migration URL
     ///
     /// This URL is used to initiate a session
     /// migration.
@@ -18,7 +20,7 @@ pub struct Goaway {
     /// However, it is possible to be empty. In
     /// this case no migration can be performed.
     #[varint(length = x(i))]
-    url: x!(..),
+    pub url: x!(..),
 }
 
 impl Goaway {

@@ -2,35 +2,78 @@ use varint::{VarInt, x};
 
 use crate::types::{
     Parameters,
-    location::Location,
-    misc::{FilterType, Forward, GroupOrder},
+    misc::{FilterType, Forward, GroupOrder, Location},
 };
 
-/// TODO docs
+/// ## PublishOk
+///
+/// Response to a successful [Publish](crate::types::message::Publish).
 #[derive(Debug, VarInt, PartialEq, Clone)]
 #[varint::draft_ref(v = 14)]
 #[varint(parameters(delivery_timeout))]
 pub struct PublishOk {
-    /// TODO docs
-    request_id: x!(i),
-    /// TODO docs
-    forward: Forward,
-    /// TODO docs
-    subscriber_priority: x!(8),
-    /// TODO docs
-    group_order: GroupOrder,
-    /// TODO docs
-    filter_type: FilterType,
-    /// TODO docs
+    /// ## Request ID
+    pub request_id: x!(i),
+
+    /// ## Forward Mode
+    ///
+    /// [Forward]
+    pub forward: Forward,
+
+    /// ## Subscriber Priority
+    ///
+    /// Sets a priority in relation to all Fetches
+    /// and Subscribes in the current Session.
+    ///
+    /// Lower means higher priority.
+    pub subscriber_priority: x!(8),
+
+    /// ## Group Order
+    ///
+    /// The Order in which Groups will be published.
+    ///
+    /// [GroupOrder]
+    pub group_order: GroupOrder,
+
+    /// ## Filter Type
+    ///
+    /// Indicates the Publish mode.
+    ///
+    /// [FilterType]
+    pub filter_type: FilterType,
+
+    /// ## First Object
+    ///
+    /// The starting point of the associated Publish.
+    ///
+    /// Some if `filter_type` is:
+    ///
+    /// * [AbsoluteStart](FilterType::AbsoluteStart)
+    /// * [AbsoluteRange](FilterType::AbsoluteRange)
+    ///
+    /// Otherwise None.
+    ///
+    /// [Location]
     #[varint(when(filter_type = 0x3 || 0x4))]
-    start_location: x!([Location]),
-    /// TODO docs
+    pub start_location: x!([Location]),
+
+    /// ## Final Group
+    ///
+    /// The final Group of this Track.
+    ///
+    /// Some if `filter_type` is:
+    ///
+    /// * [AbsoluteRange](FilterType::AbsoluteRange)
+    ///
+    /// Otherwise None.
     #[varint(when(filter_type = 0x4))]
-    end_group: x!([i]),
-    // TODO docs
-    parameters: Parameters,
+    pub end_group: x!([i]),
+
+    /// ## Parameters
+    ///
+    /// [Parameters]
+    pub parameters: Parameters,
 }
-// TODO impls for usability
 
 #[cfg(test)]
 mod tests {

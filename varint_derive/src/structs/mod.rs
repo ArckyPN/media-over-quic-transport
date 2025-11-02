@@ -2,15 +2,17 @@ mod attrs;
 
 pub(crate) use attrs::Getter;
 
-use attrs::{StructAttrs, setup, general};
+use attrs::StructAttrs;
 
-use proc_macro_error2::{abort};
+use proc_macro_error2::abort;
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote, ToTokens, TokenStreamExt};
-use syn::{  spanned::Spanned, token::Brace, Attribute, Expr, FieldsNamed, Ident, PathArguments, Type, TypePath};
+use quote::{ToTokens, format_ident, quote};
+use syn::{
+    Attribute, Expr, FieldsNamed, Ident, PathArguments, Type, TypePath, spanned::Spanned,
+    token::Brace,
+};
 
-use crate::{crate_name,  utils::attributes::StructFieldAttributes};
-
+use crate::{crate_name, utils::attributes::StructFieldAttributes};
 
 pub struct ImplStruct {
     /// name of the struct being derived upon
@@ -40,13 +42,13 @@ impl ImplStruct {
         let mut field_attrs = Vec::new();
 
         let attr = StructAttrs::new(attrs, fields);
-        
+
         for field in &fields.named {
             field_tys.push(field.ty.clone());
 
             match &field.ident {
                 Some(name) => field_names.push(name.clone()),
-                None => abort!(field.span(), "Unnamed Fields not supported")
+                None => abort!(field.span(), "Unnamed Fields not supported"),
             }
 
             let attr = StructFieldAttributes::from_attrs(&field.attrs);
@@ -60,34 +62,46 @@ impl ImplStruct {
             field_attrs.push(attr);
         }
 
-        Self { name: name.clone(), varint: crate_name(), attr, field_names, field_tys, field_attrs }
+        Self {
+            name: name.clone(),
+            varint: crate_name(),
+            attr,
+            field_names,
+            field_tys,
+            field_attrs,
+        }
     }
 
     fn field_length_decoders(&self) -> Vec<TokenStream> {
         let varint = &self.varint;
 
-        self.field_attrs.iter().map(|attr| {
-            if let Some(f) = &attr.length {
-                quote! {
-                    let (field_len, len) = <#f as #varint::core::VarInt>::decode(reader, None)?;
-                    bits += len;
-                    let field_len = Some(field_len.number::<usize>() * 8);
+        self.field_attrs
+            .iter()
+            .map(|attr| {
+                if let Some(f) = &attr.length {
+                    quote! {
+                        let (field_len, len) = <#f as #varint::core::VarInt>::decode(reader, None)?;
+                        bits += len;
+                        let field_len = Some(field_len.number::<usize>() * 8);
+                    }
+                } else if self.length_required() {
+                    quote! {
+                        let field_len = Some(length - bits);
+                    }
+                } else {
+                    quote! {
+                        let field_len = None;
+                    }
                 }
-            } else if self.length_required() {
-                quote! {
-                    let field_len = Some(length - bits);
-                }
-            } else {
-                quote! {
-                    let field_len = None;
-                }
-            }
-        }).collect()
+            })
+            .collect()
     }
 
     fn field_length_encoders(&self) -> Vec<TokenStream> {
-        self.field_attrs.iter().zip(&self.field_names).map(|(attr, field)| {
-            match &attr.length {
+        self.field_attrs
+            .iter()
+            .zip(&self.field_names)
+            .map(|(attr, field)| match &attr.length {
                 Some(ty) => quote! {
                     let field_len = self.#field.len_bits();
                     let field_length = <#ty>::try_from(field_len / 8)?;
@@ -100,8 +114,8 @@ impl ImplStruct {
                 None => quote! {
                     let field_len = None;
                 },
-            }
-        }).collect()
+            })
+            .collect()
     }
 
     fn field_decoders(&self) -> Vec<TokenStream> {
@@ -138,10 +152,10 @@ impl ImplStruct {
                         #field.push(field);
                     }
                 }
-            } else { 
+            } else {
                 quote! {
                     #field_length
-                    let (#field, len) = <#field_ty as #varint::core::VarInt>::decode(reader, field_len)?; 
+                    let (#field, len) = <#field_ty as #varint::core::VarInt>::decode(reader, field_len)?;
                     bits += len;
                 }
             }
@@ -150,31 +164,38 @@ impl ImplStruct {
 
     fn field_encoders(&self) -> Vec<TokenStream> {
         let field_length = self.field_length_encoders();
-        
-        self.field_names.iter().zip(&self.field_tys).zip(&self.field_attrs).zip(field_length).map(|(((field, field_ty), field_attr), field_length)| {
-            if let Some(_ty) = option_type(field_ty) {
-                quote! {
-                    if let Some(val) = &self.#field {
+
+        self.field_names
+            .iter()
+            .zip(&self.field_tys)
+            .zip(&self.field_attrs)
+            .zip(field_length)
+            .map(|(((field, field_ty), field_attr), field_length)| {
+                if let Some(_ty) = option_type(field_ty) {
+                    quote! {
+                        if let Some(val) = &self.#field {
+                            #field_length
+                            bits += val.encode(writer, field_len)?;
+                        }
+                    }
+                } else if let Some(_ty) = vec_type(field_ty)
+                    && let Some(count) = &field_attr.count
+                {
+                    quote! {
+                        bits += <#count>::try_from(self.#field.len())?.encode(writer, None)?;
+                        for element in &self.#field {
+                            #field_length
+                            bits += element.encode(writer, field_len)?;
+                        }
+                    }
+                } else {
+                    quote! {
                         #field_length
-                        bits += val.encode(writer, field_len)?;
+                        bits += self.#field.encode(writer, field_len)?;
                     }
                 }
-            } else if let Some(_ty) = vec_type(field_ty)
-                    && let Some(count) = &field_attr.count {
-                quote! {
-                    bits += <#count>::try_from(self.#field.len())?.encode(writer, None)?;
-                    for element in &self.#field {
-                        #field_length
-                        bits += element.encode(writer, field_len)?;
-                    }
-                }
-            } else {
-                quote! {
-                    #field_length
-                    bits += self.#field.encode(writer, field_len)?; 
-                }
-            }
-        }).collect()
+            })
+            .collect()
     }
 
     fn len_bits(&self) -> Vec<TokenStream> {
@@ -216,20 +237,28 @@ impl ImplStruct {
     }
 
     fn length_required(&self) -> bool {
-        let last = self.field_attrs.len() -1;
+        let last = self.field_attrs.len() - 1;
         let typ_is_bit_range = |typ: &Type| -> bool {
             let typ = typ.to_token_stream().to_string();
             (typ.contains("..") && !typ.contains("...")) || typ.contains("BitRange")
         };
 
-        self.field_attrs.iter().zip(&self.field_tys).zip(&self.field_names).enumerate().fold(false, |_acc, (idx, ((attr, typ), field))| {
-            let is_bit_range = typ_is_bit_range(typ);
-            if attr.length.is_none() && is_bit_range && idx != last {
-                abort!(field.span(), "x!(A..B) requires a length attribute, when not the last field")
-            }
+        self.field_attrs
+            .iter()
+            .zip(&self.field_tys)
+            .zip(&self.field_names)
+            .enumerate()
+            .fold(false, |_acc, (idx, ((attr, typ), field))| {
+                let is_bit_range = typ_is_bit_range(typ);
+                if attr.length.is_none() && is_bit_range && idx != last {
+                    abort!(
+                        field.span(),
+                        "x!(A..B) requires a length attribute, when not the last field"
+                    )
+                }
 
-            attr.length.is_none() && is_bit_range && idx == last 
-        })
+                attr.length.is_none() && is_bit_range && idx == last
+            })
     }
 
     fn impl_varint(&self, tokens: &mut TokenStream) {
@@ -266,7 +295,6 @@ impl ImplStruct {
             quote! {}
         };
 
-        // TODO add struct attr to add parameters, with a list of possibly expected types (token, max cache, etc), add getters (and setters?) for those and generic setters, for any params
         quote! {
             impl #varint::VarInt for #name
         }
@@ -313,7 +341,7 @@ impl ImplStruct {
 
                 Ok(bits)
             }
-            
+
             fn len_bits(&self) -> usize {
                 let mut bits = 0;
                 #( #len_bits )*
@@ -356,9 +384,7 @@ fn option_type(ty: &Type) -> Option<Box<dyn ToTokens>> {
                 None
             }
         }
-        Type::Path(p) => {
-            get_generic(p, "Option")
-        }
+        Type::Path(p) => get_generic(p, "Option"),
         _ => None,
     }
 }
@@ -380,9 +406,7 @@ fn vec_type(ty: &Type) -> Option<Box<dyn ToTokens>> {
             let ident = Ident::new(ident.trim(), m.span());
             Some(Box::new(quote! {   x!(#ident)   }))
         }
-        Type::Path(p) => {
-            get_generic(p, "Vec")
-        }
+        Type::Path(p) => get_generic(p, "Vec"),
         _ => None,
     }
 }

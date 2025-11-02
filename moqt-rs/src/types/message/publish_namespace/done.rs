@@ -1,9 +1,13 @@
 use crate::macro_helper::namespace_struct;
 
 namespace_struct!(
-    /// TODO docs
+    /// ## PublishNamespaceDone
+    ///
+    /// Stops an active [PublishNamespace](crate::types::message::PublishNamespace).
     #[varint::draft_ref(v = 14)]
     PublishNamespaceDone
-    /// TODO docs
+    /// ## Track Namespace
+    ///
+    /// The affected Namespace.
     namespace
 );

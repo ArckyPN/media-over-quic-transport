@@ -1,15 +1,26 @@
 use varint::varint_enum;
 
 varint_enum! {
-    /// TODO docs
+    /// ## Group Order
+    ///
+    /// Defines in which order Groups are
+    /// transmitted.
     #[derive(Debug, PartialEq, Clone, Copy)]
     #[varint(value = x(8))]
     pub enum GroupOrder {
-        /// TODO docs
+        /// ## Original Order
+        ///
+        /// The order as intended by the Publisher.
         Original = 0x0,
-        /// TODO docs
+
+        /// ## Ascending Order
+        ///
+        /// In ascending order of Group IDs.
         Ascending = 0x1,
-        /// TODO docs
+
+        /// ## Descending Order
+        ///
+        /// In descending order of Group IDs.
         Descending = 0x2,
     }
 }

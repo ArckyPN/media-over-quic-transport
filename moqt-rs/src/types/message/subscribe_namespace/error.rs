@@ -1,7 +1,9 @@
 use crate::macro_helper::control_message_error;
 
 control_message_error!(
-    /// TODO docs
+    /// ## SubscribeNamespaceError
+    ///
+    /// Response to a failed [SubscribeNamespace](crate::types::message::SubscribeNamespace).
     #[derive(Debug, PartialEq, Clone)]
     #[varint::draft_ref(v = 14)]
     SubscribeNamespace + Error

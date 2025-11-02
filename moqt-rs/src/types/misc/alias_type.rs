@@ -1,11 +1,15 @@
 use varint::varint_enum;
 
 varint_enum! {
-    /// An Integer defining the serialization and
-    /// processing behavior of a [Token](crate::types::Token).
+    /// ## Alias Type
+    ///
+    /// Defines the serialization and
+    /// processing behavior of [AuthToken](crate::types::Token).
     #[varint::draft_ref(v = 14, rename = "authorization-token")]
     #[derive(Debug, PartialEq, Clone, Copy)]
     pub enum AliasType {
+        /// ## Delete
+        ///
         /// There is an Alias but no Type or Value.
         ///
         /// This Alias and the Token Value it was
@@ -15,6 +19,9 @@ varint_enum! {
         /// Retiring removes them from the pool
         /// of actively registered tokens.
         Delete  = 0x0,
+
+        /// ## Register
+        ///
         /// There is an Alias, a Type and a Value.
         ///
         /// This Alias MUST be associated with the
@@ -24,11 +31,17 @@ varint_enum! {
         /// This action is termed "registering"
         /// the Token.
         Register = 0x1,
+
+        /// ## Use Alias
+        ///
         /// There is an Alias but no Type or Value.
         ///
         /// Use the Token Type and Value previously
         /// registered with this Alias.
         UseAlias = 0x2,
+
+        /// ## Use Value
+        ///
         /// There is no Alias and there is a Type
         /// and Value.
         ///
