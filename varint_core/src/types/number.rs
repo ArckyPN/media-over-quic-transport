@@ -488,6 +488,7 @@ impl From<&Number> for Number {
 #[cfg(test)]
 mod tests {
     use bytes::Bytes;
+    use pretty_assertions::assert_eq;
 
     use crate::{ReferenceReader, ReferenceWriter, Writer};
 

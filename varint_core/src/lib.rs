@@ -102,6 +102,7 @@ pub(crate) fn number_from_str<N: funty::Integral>(s: &str) -> Result<N, StringEr
 #[cfg(test)]
 mod tests {
     use super::*;
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn number_from_str_test() {

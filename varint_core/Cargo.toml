@@ -17,4 +17,5 @@ moq = []
 bytes = { workspace = true }
 funty = "2.0.0"
 paste = { workspace = true }
+pretty_assertions = { workspace = true }
 snafu = { workspace = true }

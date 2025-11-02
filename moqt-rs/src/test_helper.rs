@@ -33,25 +33,25 @@ mod sub {
             fn varint_test() {
                 use varint::{Writer, VarInt};
 
-            let mut reader = varint::core::ReferenceReader::new(&[$buf, &[$invalid]].concat());
-            let mut writer = varint::core::ReferenceWriter::new();
+                let mut reader = varint::core::ReferenceReader::new(&[$buf, &[$invalid]].concat());
+                let mut writer = varint::core::ReferenceWriter::new();
 
-            $({
-                let valid = $name::decode(&mut reader, None);
-                assert_eq!(valid, Ok(($name::$variants, 8)));
+                $({
+                    let valid = $name::decode(&mut reader, None);
+                    pretty_assertions::assert_eq!(valid, Ok(($name::$variants, 8)));
 
-                let valid = $name::$variants.encode(&mut writer, None);
-                assert_eq!(valid, Ok(8));
-            })+
+                    let valid = $name::$variants.encode(&mut writer, None);
+                    pretty_assertions::assert_eq!(valid, Ok(8));
+                })+
 
-            let valid = writer.finish();
-            assert_eq!(valid, Ok($buf.to_vec().into()));
+                let valid = writer.finish();
+                pretty_assertions::assert_eq!(valid, Ok($buf.to_vec().into()));
 
-            let invalid = $name::decode(&mut reader, None);
-            assert_eq!(
-                invalid,
-                Err(varint::Error::UnknownValue { value: 0x3F })
-            );
+                let invalid = $name::decode(&mut reader, None);
+                pretty_assertions::assert_eq!(
+                    invalid,
+                    Err(varint::Error::UnknownValue { value: 0x3F })
+                );
             }
         };
     }
@@ -67,12 +67,12 @@ mod sub {
                 for (msg, buf, length) in $name::test_data() {
                     let mut reader = varint::core::ReferenceReader::new(&buf);
                     let valid = $name::decode(&mut reader, Some(length));
-                    assert_eq!(valid, Ok((msg.clone(), length)));
+                    pretty_assertions::assert_eq!(valid, Ok((msg.clone(), length)));
 
                     let mut writer = varint::core::ReferenceWriter::new();
                     let valid = msg.encode(&mut writer, Some(length));
-                    assert_eq!(valid, Ok(length));
-                    assert_eq!(writer.finish(), Ok(buf.into()));
+                    pretty_assertions::assert_eq!(valid, Ok(length));
+                    pretty_assertions::assert_eq!(writer.finish(), Ok(buf.into()));
                 }
             }
         };

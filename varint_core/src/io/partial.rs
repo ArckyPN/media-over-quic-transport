@@ -164,6 +164,7 @@ pub(super) fn valid_n(n: u8) -> Result<(), PartialByteError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn is_on_byte_boundary_test() {

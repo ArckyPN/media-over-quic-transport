@@ -231,6 +231,7 @@ mod tests {
 
     #[test]
     fn decode_test() {
+        use pretty_assertions::assert_eq;
         let mut reader = ReferenceReader::new(BUFFER);
 
         let (tuple, bits) = Tuple::decode(&mut reader, None).unwrap();

@@ -344,6 +344,7 @@ impl_try_from!(
 #[cfg(test)]
 mod tests {
     use crate::{ReferenceReader, ReferenceWriter, Writer, io::writer::WriterError};
+    use pretty_assertions::assert_eq;
 
     use super::*;
 

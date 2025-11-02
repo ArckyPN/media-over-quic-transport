@@ -434,6 +434,7 @@ impl<const N: usize> From<&[u8; N]> for BitRange {
 #[cfg(test)]
 mod tests {
     use crate::{Number, ReferenceReader, ReferenceWriter, Writer};
+    use pretty_assertions::assert_eq;
 
     use super::*;
 

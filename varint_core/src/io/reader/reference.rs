@@ -120,6 +120,7 @@ impl Debug for ReferenceReader {
 #[cfg(test)]
 mod tests {
     use bytes::Bytes;
+    use pretty_assertions::assert_eq;
 
     use crate::io::reader::ReaderError;
 
