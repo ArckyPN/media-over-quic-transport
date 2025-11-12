@@ -7,7 +7,7 @@ use funty::Unsigned;
 use bytes::Bytes;
 use snafu::{ResultExt, Snafu};
 
-#[derive(Clone, PartialEq, PartialOrd)]
+#[derive(Clone, PartialEq, PartialOrd, Eq, Ord)]
 pub struct BitStore<const MIN: usize = 0, const MAX: usize = { usize::MAX }> {
     data: Bytes,
     len: usize,
@@ -169,9 +169,7 @@ pub enum Error {
     #[snafu(display("invalid length"))]
     InvalidLength { source: InvalidBitLength },
     /// trying to fit a number into too small a space
-    #[snafu(display(
-        "number >{num}< needs >{needs}< bits, but tried to fit into >{expected}< bits"
-    ))]
+    #[snafu(display("number {num} needs {needs} bits, but tried to fit into {expected} bits"))]
     InvalidFit {
         num: u128,
         needs: usize,
@@ -184,7 +182,7 @@ pub enum Error {
 
 /// length is not between the required bounds
 #[derive(Debug, Snafu, Clone, Copy, PartialEq)]
-#[snafu(display("invalid length, got >{got}<, but need between >{min}< and >{max}<"))]
+#[snafu(display("invalid length, got {got}, but need between {min} and {max}"))]
 pub struct InvalidBitLength {
     got: usize,
     min: usize,
@@ -211,7 +209,7 @@ mod tests {
     fn set_bits_test() {
         let mut store = BitStore::<0, 16>::default();
 
-        store.set_bits(&[0b1100_0000], 5).unwrap();
+        store.set_bits(&[0b1100_0000], 5).expect("will fit");
         assert_eq!(store.number::<u8>(), 0b0001_1000);
         assert_eq!(*store.bits(), [0b1100_0000]);
     }
@@ -220,19 +218,19 @@ mod tests {
     fn set_number_test() {
         let mut store = BitStore::<0, 160>::default();
 
-        store.set_number(4u8, Some(5)).unwrap();
+        store.set_number(4u8, Some(5)).expect("will fit");
         assert_eq!(store.number::<u8>(), 4);
         assert_eq!(*store.bits(), [0b0010_0000]);
 
-        store.set_number(4u8, Some(8)).unwrap();
+        store.set_number(4u8, Some(8)).expect("will fit");
         assert_eq!(store.number::<u8>(), 4);
         assert_eq!(*store.bits(), [4]);
 
-        store.set_number(42u16, Some(11)).unwrap();
+        store.set_number(42u16, Some(11)).expect("will fit");
         assert_eq!(store.number::<u32>(), 42);
         assert_eq!(*store.bits(), [0b0000_0101, 0b0100_0000]);
 
-        store.set_number(512u16, Some(15)).unwrap();
+        store.set_number(512u16, Some(15)).expect("will fit");
         assert_eq!(store.number::<u32>(), 512);
         assert_eq!(*store.bits(), [0b0000_0100, 0b0000_0000]);
     }

@@ -1,28 +1,34 @@
-use core::hash;
-use std::fmt::{Debug, Display};
+mod error;
+mod varint;
+mod varint_bytes;
 
-use bytes::{Bytes, BytesMut, buf::IntoIter};
-use snafu::{ResultExt, Snafu};
-
-use crate::{
-    Number, NumberError, VarInt,
-    io::{reader::ReaderError, writer::WriterError},
+use {
+    bytes::{Bytes, BytesMut, buf::IntoIter},
+    std::{
+        fmt::{Debug, Display},
+        hash::Hash,
+    },
 };
 
+pub use error::BinaryDataError;
+
+pub(super) use error::ctx;
+
+/// A BinaryData is a sequence of Bytes.
+///
+/// For convenience you should use the [x!(i)](varint_derive::x) // TODO doc.rs link once varint_derive is published
+/// macro instead of remembering this type.
+///
+/// It starts with a [VarInt](crate::Number), followed
+/// by that many bytes.
 #[derive(Default, PartialEq, PartialOrd, Eq, Ord, Clone)]
 pub struct BinaryData {
     data: Bytes,
 }
 
-impl BinaryData {
-    pub fn new(buf: &[u8]) -> Self {
-        buf.to_vec().into()
-    }
-}
-
 impl Display for BinaryData {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&String::from_utf8_lossy(self))
+        write!(f, "{}", String::from_utf8_lossy(self))
     }
 }
 
@@ -33,56 +39,6 @@ impl Debug for BinaryData {
             .field("data", &self.data.to_vec())
             .finish()
     }
-}
-
-impl VarInt for BinaryData {
-    type Error = BinaryDataError;
-    fn decode<R>(reader: &mut R, _length: Option<usize>) -> Result<(Self, usize), Self::Error>
-    where
-        R: crate::Reader,
-        Self: std::marker::Sized,
-    {
-        let mut bits = 0;
-        let (length, len) = Number::decode(reader, None).context(NumberSnafu)?;
-        bits += len;
-
-        let data = reader.read_bytes(length.number()).context(ReaderSnafu)?;
-        bits += length.number::<usize>() * 8;
-
-        Ok((data.into(), bits))
-    }
-
-    fn encode<W>(&self, writer: &mut W, _length: Option<usize>) -> Result<usize, Self::Error>
-    where
-        W: crate::Writer,
-    {
-        let len = self.data.len();
-        let length = Number::try_new(len as u64).context(NumberSnafu)?;
-
-        let mut bits = length.encode(writer, None).context(NumberSnafu)?;
-
-        writer.write_bytes(&self.data).context(WriterSnafu)?;
-        bits += len * 8;
-
-        Ok(bits)
-    }
-
-    fn len_bits(&self) -> usize {
-        // TODO + len as VarInt bits
-        self.len() * 8
-    }
-
-    fn length_required() -> bool {
-        // length is provided by the preceding VarInt
-        false
-    }
-}
-
-#[derive(Debug, Snafu, PartialEq, Clone)]
-pub enum BinaryDataError {
-    Number { source: NumberError<u64> },
-    Reader { source: ReaderError },
-    Writer { source: WriterError },
 }
 
 // more or less the same impls as bytes::Bytes
@@ -100,7 +56,7 @@ impl AsRef<[u8]> for BinaryData {
     }
 }
 
-impl hash::Hash for BinaryData {
+impl Hash for BinaryData {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.data.hash(state);
     }
@@ -324,66 +280,3 @@ macro_rules! impl_from {
     };
 }
 impl_from!(Vec<u8>, Bytes, BytesMut);
-
-#[cfg(test)]
-mod tests {
-    use crate::{ReferenceReader, ReferenceWriter, Writer};
-
-    use super::*;
-
-    const BUFFER: &[u8] = &[
-        // x(i) => 8
-        0b0000_1000,
-        // 8 bytes data
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        8,
-    ];
-    const INVALID: &[u8] = &[
-        // x(i) => 8
-        0b0000_1000,
-        // only 7 bytes data => too few
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-    ];
-
-    #[test]
-    fn decode_test() {
-        let mut reader = ReferenceReader::new(BUFFER);
-
-        let (valid, bits) = BinaryData::decode(&mut reader, None).unwrap();
-        assert_eq!(bits, BUFFER.len() * 8);
-        assert_eq!(valid.data, BUFFER[1..]);
-
-        let mut reader = ReferenceReader::new(INVALID);
-
-        let invalid = BinaryData::decode(&mut reader, None);
-        assert_eq!(
-            invalid,
-            Err(BinaryDataError::Reader {
-                source: ReaderError::MissingBytes { needs: 8, left: 7 }
-            })
-        );
-    }
-
-    #[test]
-    fn encode_test() {
-        let mut writer = ReferenceWriter::new();
-
-        let data = BinaryData::new(&BUFFER[1..]);
-        let bits = data.encode(&mut writer, None).unwrap();
-
-        assert_eq!(bits, BUFFER.len() * 8);
-        assert_eq!(writer.finish(), Ok(Bytes::from(BUFFER)));
-    }
-}

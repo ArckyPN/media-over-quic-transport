@@ -34,7 +34,7 @@ pub trait Reader {
 #[snafu(visibility(pub(super)), module(ctx))]
 pub enum ReaderError {
     /// trying to read more bytes than available
-    #[snafu(display("tried to read >{needs}< bytes from >{left}< bytes buffer"))]
+    #[snafu(display("tried to read {needs} bytes from {left} bytes buffer"))]
     MissingBytes { needs: usize, left: usize },
     /// previous [read_bits](crate::Reader::read_bits) didn't end
     /// on a byte boundary

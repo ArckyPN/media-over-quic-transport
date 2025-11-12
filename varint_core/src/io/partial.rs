@@ -147,7 +147,7 @@ impl Debug for PartialByte {
 #[derive(Debug, Snafu, PartialEq, Clone)]
 pub enum PartialByteError {
     /// tried to read invalid number of bits
-    #[snafu(display("expected n of [1; 7], but got >{n}<"))]
+    #[snafu(display("expected n of [1; 7], but got {n}"))]
     InvalidN { n: u8 },
     /// tried to overwrite cached bits
     #[snafu(display("tried to override initialized partial byte"))]

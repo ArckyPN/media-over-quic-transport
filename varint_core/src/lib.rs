@@ -1,20 +1,27 @@
 pub(crate) mod bitstore;
+#[cfg(feature = "moq")]
+pub mod external_impls;
 mod io;
 pub mod types;
 
-pub use io::{
-    reader::{Reader, ReaderError, ReferenceReader},
-    writer::{ReferenceWriter, Writer, WriterError},
-};
 use snafu::{ResultExt, Snafu};
-pub use types::{BitNumber, BitNumberError, BitRange, BitRangeError, Number, NumberError};
+pub use {
+    io::{
+        reader::{Reader, ReaderError, ReferenceReader},
+        writer::{ReferenceWriter, Writer, WriterError},
+    },
+    types::{BitNumber, BitNumberError, BitRange, BitRangeError, Number, NumberError},
+};
 
 #[cfg(feature = "moq")]
 pub use types::{BinaryData, BinaryDataError, Tuple, TupleError};
 
-pub trait VarInt {
+pub trait VarInt
+where
+    Self: std::marker::Sized,
+{
     /// The error type.
-    type Error;
+    type Error: std::fmt::Debug;
 
     /// Encode the data for transmission.
     ///
@@ -42,15 +49,17 @@ pub trait VarInt {
     /// decoded bits is returned.
     fn decode<R>(reader: &mut R, length: Option<usize>) -> Result<(Self, usize), Self::Error>
     where
-        R: Reader,
-        Self: std::marker::Sized;
+        R: Reader;
 
     /// Returns the number of bits required to represent
     /// the data as VarInt.
-    fn len_bits(&self) -> usize;
+    ///
+    /// Return an Error if the number of bits cannot be
+    /// determined.
+    fn len_bits(&self) -> Result<usize, Self::Error>;
 
     /// Indicates whether this types requires the `length`
-    /// argument dor `encode` and `decode`.
+    /// argument for `encode` and `decode`.
     ///
     /// This is connected to the [BitRange] aka. `x!(..)`
     /// type, which has a variable length and requires a
@@ -61,9 +70,65 @@ pub trait VarInt {
     fn length_required() -> bool;
 }
 
-// TODO get rid of all unwraps
-// TODO impl VarInt for primitive types, which make sense
-// TODO rework all Error types, every fn should have its own Error type, errors can be reused if fns share the same
+pub trait VarIntNumber: VarInt
+where
+    Self: Default,
+{
+    /// Returns the inner buffer as unsigned
+    /// number.
+    fn number<U>(&self) -> U
+    where
+        U: funty::Unsigned;
+
+    /// Constructs a new Number from any unsigned
+    /// Number `v`, using the `n` MSBs.
+    ///
+    /// Use all bits is `n` is None.
+    fn new_number<U>(v: U, n: Option<usize>) -> Result<Self, Self::Error>
+    where
+        U: funty::Unsigned,
+    {
+        let mut this = Self::default();
+        this.set_number(v, n)?;
+        Ok(this)
+    }
+
+    /// Overrides the inner buffer with a new unsigned
+    /// Number `v`, using the `n` MSBs.
+    ///
+    /// Use all bits is `n` is None.
+    fn set_number<U>(&mut self, v: U, n: Option<usize>) -> Result<&mut Self, Self::Error>
+    where
+        U: funty::Unsigned;
+}
+
+pub trait VarIntBytes: VarInt {
+    /// Returns the inner buffer as raw Bytes.
+    fn bytes(&self) -> bytes::Bytes;
+
+    /// Constructs a new Bytes value with `n` bits
+    /// from `buf`fer, starting at the MSB.
+    ///
+    /// If `n` is None, the entire `buf`fer will be used.
+    fn new_bytes(buf: &[u8], n: Option<usize>) -> Result<Self, Self::Error>;
+
+    /// Overrides the inner buffer with `n` bits
+    /// from `buf`fer, starting at the MSB.
+    ///
+    /// If `n` is None, the entire `buf`fer will be used.
+    fn set_bytes(&mut self, buf: &[u8], n: Option<usize>) -> Result<&mut Self, Self::Error>;
+}
+
+/// Mutation of the Key-Value-Pair Structure and [VarInt] trait.
+#[cfg(feature = "moq")]
+pub trait Parameter<K>: From<external_impls::KeyValuePair<K>>
+where
+    K: VarIntNumber,
+{
+    type Error;
+
+    fn to_kvp(&self, key: K) -> Result<external_impls::KeyValuePair<K>, Self::Error>;
+}
 
 #[derive(Debug, Snafu, PartialEq, Clone)]
 pub struct NumberStringError {}
@@ -72,7 +137,7 @@ pub struct NumberStringError {}
 pub enum StringError {
     #[snafu(display("Negative Numbers are not supported"))]
     IsNegative,
-    #[snafu(display("Failed to parse >{input}< as number"))]
+    #[snafu(display("Failed to parse {input} as number"))]
     NumberError {
         input: String,
         source: std::num::ParseIntError,
