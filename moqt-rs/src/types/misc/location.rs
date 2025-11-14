@@ -1,4 +1,4 @@
-use varint::{VarInt, draft_ref, funty::Unsigned, x};
+use varint::{VarInt, VarIntNumber, draft_ref, funty::Unsigned, x};
 
 /// ## Location
 ///

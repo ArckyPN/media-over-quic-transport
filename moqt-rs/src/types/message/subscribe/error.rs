@@ -3,7 +3,7 @@ use crate::macro_helper::control_message_error;
 control_message_error!(
     /// ## SubscribeError
     ///
-    /// Response to a failed [Subscribe](crate::type::message::Subscribe).
+    /// Response to a failed [Subscribe](crate::types::message::Subscribe).
     #[derive(Debug, PartialEq, Clone)]
     #[varint::draft_ref(v = 14)]
     Subscribe + Error

@@ -6,6 +6,8 @@ mod utils;
 mod varint_enum;
 mod x;
 
+// TODO I should restrict all more stuff behind a moq feature
+
 use draft_ref::DraftRefArgs;
 use enums::ImplEnum;
 use structs::ImplStruct;

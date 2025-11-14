@@ -53,7 +53,7 @@ pub trait Writer {
 }
 
 /// Error returned by [Writer](crate::Writer).
-#[derive(Debug, Snafu, PartialEq, Clone)]
+#[derive(Debug, Snafu, Clone, PartialEq, PartialOrd, Eq, Ord)]
 #[snafu(visibility(pub(super)), module(ctx))]
 pub enum WriterError {
     /// previous [write_bits](crate::Writer::write_bits) didn't end

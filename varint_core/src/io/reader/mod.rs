@@ -30,7 +30,7 @@ pub trait Reader {
 }
 
 /// Error returned by [Reader](crate::Reader).
-#[derive(Debug, Snafu, PartialEq, Clone)]
+#[derive(Debug, Snafu, Clone, PartialEq, PartialOrd, Eq, Ord)]
 #[snafu(visibility(pub(super)), module(ctx))]
 pub enum ReaderError {
     /// trying to read more bytes than available

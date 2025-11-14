@@ -105,14 +105,14 @@ mod tests {
             .concat();
             let l1 = b1.len() * 8;
 
-            let v2 = Self::ClientSetup(ClientSetup::new(&[1u8, 2u8, 3u8]));
+            let v2 = Self::ClientSetup(ClientSetup::new(&[1u8, 2u8, 3u8], []));
             let b2 = vec![
                 0x20, // Client Setup
                 0,    // payload length
-                4,    //
+                5,    //
                 3,    // num versions,
                 1, 2, 3, // version
-                   // TODO parameters
+                0, // no parameters
             ];
             let l2 = b2.len() * 8;
 

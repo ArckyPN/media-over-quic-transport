@@ -1,6 +1,11 @@
 use std::fmt::Debug;
 
-use varint::{VarInt, x};
+use snafu::{ResultExt, Snafu};
+use varint::{
+    VarInt, VarIntBytes, Writer,
+    core::{ReferenceReader, ReferenceWriter, WriterError},
+    x,
+};
 
 use crate::types::misc::AliasType;
 
@@ -140,6 +145,35 @@ impl Debug for Token {
             .field("value", &self.value)
             .finish()
     }
+}
+
+impl TryFrom<x!(..)> for Token {
+    type Error = TokenError;
+    fn try_from(value: x!(..)) -> Result<Self, Self::Error> {
+        let buf = value.bytes();
+        let mut reader = ReferenceReader::new(&buf);
+
+        let (this, _bits) = Self::decode(&mut reader, Some(buf.len() * 8)).context(VarIntSnafu)?;
+
+        Ok(this)
+    }
+}
+impl TryFrom<Token> for x!(..) {
+    type Error = TokenError;
+    fn try_from(value: Token) -> Result<Self, Self::Error> {
+        let mut writer = ReferenceWriter::new();
+        value
+            .encode(&mut writer, value.len_bits().ok())
+            .context(VarIntSnafu)?;
+        let buf = writer.finish().context(WriterSnafu)?;
+        Ok(Self::from(buf))
+    }
+}
+
+#[derive(Debug, Snafu, Clone, PartialEq, PartialOrd, Eq, Ord)]
+pub enum TokenError {
+    VarInt { source: varint::Error },
+    Writer { source: WriterError },
 }
 
 #[cfg(test)]

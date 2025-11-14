@@ -8,7 +8,7 @@ pub use un::UnsubscribeNamespace;
 
 use varint::{VarInt, x};
 
-use crate::types::{Parameters, track};
+use crate::types::{Parameters, track::Namespace};
 
 /// ## SubscribeNamespace
 ///
@@ -26,8 +26,8 @@ pub struct SubscribeNamespace {
     ///
     /// The requested Namespace.
     ///
-    /// [Namespace](track::Namespace)
-    pub namespace_prefix: track::Namespace,
+    /// [Namespace]
+    pub namespace_prefix: Namespace,
 
     /// ## Parameters
     ///
@@ -39,7 +39,7 @@ impl SubscribeNamespace {
     pub fn new<ID, N>(id: ID, namespace: N, params: Option<Parameters>) -> Self
     where
         ID: Into<x!(i)>,
-        N: Into<track::Namespace>,
+        N: Into<Namespace>,
     {
         Self {
             request_id: id.into(),

@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use varint::{VarInt, draft_ref, x};
+use varint::{VarInt, VarIntBytes, draft_ref, x};
 
 /// ## Reason Phrase
 #[derive(Debug, VarInt, PartialEq, Clone)]

@@ -10,6 +10,7 @@ use {
     snafu::ResultExt,
 };
 
+use bytes::Bytes;
 pub use error::{BitRangeConversion, BitRangeError};
 
 pub(super) use error::{ctx, ctx_conv};
@@ -165,6 +166,18 @@ impl From<String> for BitRange {
 impl From<&[u8]> for BitRange {
     fn from(value: &[u8]) -> Self {
         Self::new_bytes(value, Some(value.as_ref().len() * 8)).expect("will fit")
+    }
+}
+
+impl From<Bytes> for BitRange {
+    fn from(value: Bytes) -> Self {
+        Self::new_bytes(&value, Some(value.as_ref().len() * 8)).expect("will fit")
+    }
+}
+
+impl From<BitRange> for String {
+    fn from(value: BitRange) -> Self {
+        Self::from_utf8_lossy(&value.bytes()).to_string()
     }
 }
 

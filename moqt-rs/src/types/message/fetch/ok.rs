@@ -48,6 +48,7 @@ pub struct FetchOk {
 }
 
 impl FetchOk {
+    // TODO bon builder
     pub fn new<ID, G, E, L>(
         id: ID,
         group_order: G,

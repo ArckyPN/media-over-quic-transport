@@ -233,31 +233,41 @@ impl ImplEnum {
     fn len_bits(&self) -> Vec<TokenStream> {
         let value_ty = &self.value_ty;
 
-        self.variants.iter().zip(&self.values).zip(&self.fields).map(|((variant, value), fields)| {
-            let bit_len = quote! {
-                <#value_ty>::try_from(#value).expect("# TODO: how do deal with this?").len_bits()
-            };
+        self.variants
+            .iter()
+            .zip(&self.values)
+            .zip(&self.fields)
+            .map(|((variant, value), fields)| {
+                let bit_len = quote! {
+                    <#value_ty>::try_from(#value)?.len_bits()?
+                };
 
-            match fields {
-                EnumField::Unit => {
-                    quote! {
-                        Self::#variant => #bit_len
+                match fields {
+                    EnumField::Unit => {
+                        quote! {
+                            Self::#variant => #bit_len
+                        }
+                    }
+                    EnumField::Struct(s) => {
+                        let names = &s.names;
+                        quote! {
+                            Self::#variant { #(#names),* } => #bit_len
+                        }
+                    }
+                    EnumField::Tuples(t) => {
+                        let names = t
+                            .tys
+                            .iter()
+                            .enumerate()
+                            .map(|(idx, _)| format_ident!("v{}", idx))
+                            .collect::<Vec<_>>();
+                        quote! {
+                            Self::#variant ( #(#names),* ) => #bit_len
+                        }
                     }
                 }
-                EnumField::Struct(s) => {
-                    let names = &s.names;
-                    quote! {
-                        Self::#variant { #(#names),* } => #bit_len
-                    }
-                }
-                EnumField::Tuples(t) => {
-                    let names = t.tys.iter().enumerate().map(|(idx,_)| format_ident!("v{}", idx)).collect::<Vec<_>>();
-                    quote! {
-                        Self::#variant ( #(#names),* ) => #bit_len
-                    }
-                }
-            }
-        }).collect()
+            })
+            .collect()
     }
 
     fn impl_varint(&self, tokens: &mut proc_macro2::TokenStream) {
@@ -285,7 +295,7 @@ impl ImplEnum {
                     R: #varint::Reader,
                     Self: std::marker::Sized,
                 {
-                    use #varint::snafu::ResultExt;
+                    use #varint::{snafu::ResultExt, VarIntNumber};
 
                     let mut bits = 0;
                     let (num, len) = <#value_ty as #varint::VarInt>::decode(reader, None)?;
@@ -312,10 +322,10 @@ impl ImplEnum {
                     Ok(bits)
                 }
 
-                fn len_bits(&self) -> usize {
-                    match self {
+                fn len_bits(&self) -> Result<usize, Self::Error> {
+                    Ok(match self {
                         #( #len_bits ),*
-                    }
+                    })
                 }
 
                 fn length_required() -> bool {
@@ -359,7 +369,7 @@ fn quote_field_attrs_encode(attrs: &[FieldAttributes], names: &[Ident]) -> Vec<T
         .map(|(attr, name)| {
             if let Some(length) = &attr.length {
                 quote! {
-                    let len_bits = #name.len_bits();
+                    let len_bits = #name.len_bits()?;
                     let num = <#length>::try_from(len_bits / 8)?;
                     bits += num.encode(writer, None)?;
                     let encode_length = Some(len_bits);

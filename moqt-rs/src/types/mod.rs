@@ -7,4 +7,11 @@ mod parameter;
 mod track;
 
 // TODO export types
-pub use parameter::{Parameter, Parameters, Token};
+pub use {
+    parameter::{
+        ClientSetupParameter, ClientSetupParameterError, ClientSetupParameters, Parameter,
+        ParameterError, Parameters, ServerSetupParameter, ServerSetupParameterError,
+        ServerSetupParameters, Token,
+    },
+    track::{Name, Namespace},
+};

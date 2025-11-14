@@ -147,7 +147,7 @@ mod tests {
                 request_id: 15u8.into(),
                 track_namespace: ["num", "boom"].into(),
                 track_name: "bob".into(),
-                subscriber_priority: 50.try_into().unwrap(),
+                subscriber_priority: 50.try_into().expect("will fit"),
                 group_order: GroupOrder::Original,
                 forward: Forward::Enabled,
                 filter_type: FilterType::AbsoluteStart,

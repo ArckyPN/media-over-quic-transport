@@ -4,8 +4,8 @@ mod sub {
     /// Build a public struct which has the
     /// typical Control Message Error shape:
     ///
-    /// ```rust
-    /// struct {
+    /// ```rust, ignore
+    /// struct MessageError {
     ///     request_id: varint::x!(i),
     ///     code: ErrorCodeEnum,
     ///     reason: ReasonPhrase,

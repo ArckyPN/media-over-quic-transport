@@ -163,7 +163,7 @@ impl<const MIN: usize, const MAX: usize> Debug for BitStore<MIN, MAX> {
     }
 }
 
-#[derive(Debug, Snafu, Clone, PartialEq)]
+#[derive(Debug, Snafu, Clone, PartialEq, PartialOrd, Eq, Ord)]
 pub enum Error {
     /// length is not between the required bounds
     #[snafu(display("invalid length"))]
@@ -181,7 +181,7 @@ pub enum Error {
 }
 
 /// length is not between the required bounds
-#[derive(Debug, Snafu, Clone, Copy, PartialEq)]
+#[derive(Debug, Snafu, Clone, PartialEq, PartialOrd, Eq, Ord)]
 #[snafu(display("invalid length, got {got}, but need between {min} and {max}"))]
 pub struct InvalidBitLength {
     got: usize,

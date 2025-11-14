@@ -103,7 +103,7 @@ impl ImplStruct {
             .zip(&self.field_names)
             .map(|(attr, field)| match &attr.length {
                 Some(ty) => quote! {
-                    let field_len = self.#field.len_bits();
+                    let field_len = self.#field.len_bits()?;
                     let field_length = <#ty>::try_from(field_len / 8)?;
                     bits += field_length.encode(writer, None)?;
                     let field_len = Some(field_len);
@@ -199,41 +199,47 @@ impl ImplStruct {
     }
 
     fn len_bits(&self) -> Vec<TokenStream> {
-        self.field_names.iter().zip(&self.field_tys).zip(&self.field_attrs).map(|((field, field_ty), field_attr)| {
-            if let Some(_ty) = option_type(field_ty) {
-                let length_handle = match &field_attr.length {
-                    Some(ty) => quote! {
-                        bits += <#ty>::try_from(val.len_bits() / 8).expect("# TODO").len_bits();
-                    },
-                    None => quote! {}
-                };
-                quote! {
-                    if let Some(val) = &self.#field {
+        self.field_names
+            .iter()
+            .zip(&self.field_tys)
+            .zip(&self.field_attrs)
+            .map(|((field, field_ty), field_attr)| {
+                if let Some(_ty) = option_type(field_ty) {
+                    let length_handle = match &field_attr.length {
+                        Some(ty) => quote! {
+                            bits += <#ty>::try_from(val.len_bits()? / 8)?.len_bits()?;
+                        },
+                        None => quote! {},
+                    };
+                    quote! {
+                        if let Some(val) = &self.#field {
+                            #length_handle
+                            bits += val.len_bits()?;
+                        }
+                    }
+                } else if let Some(_ty) = vec_type(field_ty)
+                    && let Some(count) = &field_attr.count
+                {
+                    quote! {
+                        bits += <#count>::try_from(self.#field.len())?.len_bits()?;
+                        for element in &self.#field {
+                            bits += element.len_bits()?;
+                        }
+                    }
+                } else {
+                    let length_handle = match &field_attr.length {
+                        Some(ty) => quote! {
+                            bits += <#ty>::try_from(self.#field.len_bits()? / 8)?.len_bits()?;
+                        },
+                        None => quote! {},
+                    };
+                    quote! {
                         #length_handle
-                        bits += val.len_bits();
+                        bits += self.#field.len_bits()?;
                     }
                 }
-            } else if let Some(_ty) = vec_type(field_ty)
-                    && let Some(count) = &field_attr.count {
-                quote! {
-                    bits += <#count>::try_from(self.#field.len()).expect("# TODO: same as with enum").len_bits();
-                    for element in &self.#field {
-                        bits += element.len_bits();
-                    }
-                }
-            } else {
-                let length_handle = match &field_attr.length {
-                    Some(ty) => quote! {
-                        bits += <#ty>::try_from(self.#field.len_bits() / 8).expect("# TODO").len_bits();
-                    },
-                    None => quote! {}
-                };
-                quote! {
-                    #length_handle
-                    bits += self.#field.len_bits();
-                }
-            }
-        }).collect()
+            })
+            .collect()
     }
 
     fn length_required(&self) -> bool {
@@ -309,7 +315,8 @@ impl ImplStruct {
             {
                 use #varint::{
                     error::ctx,
-                    snafu::{self, ResultExt, OptionExt}
+                    snafu::{self, ResultExt, OptionExt},
+                    VarIntNumber,
                 };
 
                 // count how many bits have been read
@@ -342,10 +349,10 @@ impl ImplStruct {
                 Ok(bits)
             }
 
-            fn len_bits(&self) -> usize {
+            fn len_bits(&self) -> Result<usize, Self::Error> {
                 let mut bits = 0;
                 #( #len_bits )*
-                bits
+                Ok(bits)
             }
 
             fn length_required() -> bool {

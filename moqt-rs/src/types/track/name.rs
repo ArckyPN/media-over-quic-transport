@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use varint::{VarInt, x};
+use varint::{VarInt, VarIntBytes, x};
 
 /// ## Track Name
 #[derive(Debug, VarInt, PartialEq, Clone)]

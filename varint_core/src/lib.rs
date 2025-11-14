@@ -4,7 +4,10 @@ pub mod external_impls;
 mod io;
 pub mod types;
 
-use snafu::{ResultExt, Snafu};
+#[cfg(feature = "moq")]
+use std::fmt::Display;
+
+use snafu::Snafu;
 pub use {
     io::{
         reader::{Reader, ReaderError, ReferenceReader},
@@ -119,29 +122,48 @@ pub trait VarIntBytes: VarInt {
     fn set_bytes(&mut self, buf: &[u8], n: Option<usize>) -> Result<&mut Self, Self::Error>;
 }
 
-/// Mutation of the Key-Value-Pair Structure and [VarInt] trait.
+/// A MOQT Parameter is part of he Key-Value-Pair Structure.
+///
+/// A Parameter is defined as a [VarInt](Number) `x(i)` Key.
+///
+/// This Key defines the encoding of the associated
+/// Value:
+///
+///  - number value of Key is even: Value is a [VarInt](Number)
+///    number
+///  - number value of Key if odd: Value is a sequence of Bytes
+///    as [BitRange]
+///    - next bytes is another [VarInt](Number) number specifying
+///      the number of bytes
+///    - the remainder are that number of bytes
+///
+/// ---
+///
+/// The Parameter `trait` is a super trait of [TryFrom] for [KeyValuePair](external_impls::KeyValuePair)
+/// and the method [to_kvp](Parameter::to_kvp), which convert the Parameter back
+/// and forth from a [KeyValuePair](external_impls::KeyValuePair).
+///
+/// A [KeyValuePair](external_impls::KeyValuePair) is decoded and then converted the
+/// actual parameter key and value can be extracted from that. Encoding does this
+/// in reverse.
 #[cfg(feature = "moq")]
-pub trait Parameter<K>: From<external_impls::KeyValuePair<K>>
-where
-    K: VarIntNumber,
-{
-    type Error;
+pub trait Parameter: TryFrom<external_impls::KeyValuePair> {
+    /// The Parameter Error
+    type PError: Display;
 
-    fn to_kvp(&self, key: K) -> Result<external_impls::KeyValuePair<K>, Self::Error>;
+    /// Converts a Parameter back to a Key-Value-Pair for encoding.
+    fn to_kvp(&self, key: Number) -> Result<external_impls::KeyValuePair, Self::PError>;
 }
 
 #[derive(Debug, Snafu, PartialEq, Clone)]
 pub struct NumberStringError {}
 
-#[derive(Debug, Snafu, PartialEq, Clone)]
+#[derive(Debug, Snafu, Clone, PartialEq, PartialOrd, Eq, Ord)]
 pub enum StringError {
     #[snafu(display("Negative Numbers are not supported"))]
     IsNegative,
     #[snafu(display("Failed to parse {input} as number"))]
-    NumberError {
-        input: String,
-        source: std::num::ParseIntError,
-    },
+    NumberError { input: String, cause: String },
 }
 
 pub(crate) fn number_from_str<N: funty::Integral>(s: &str) -> Result<N, StringError> {
@@ -159,8 +181,9 @@ pub(crate) fn number_from_str<N: funty::Integral>(s: &str) -> Result<N, StringEr
         // decimal
         (s, 10)
     };
-    N::from_str_radix(src, radix).context(NumberSnafu {
+    N::from_str_radix(src, radix).map_err(|err| StringError::NumberError {
         input: s.to_string(),
+        cause: err.to_string(),
     })
 }
 
@@ -191,7 +214,7 @@ mod tests {
             invalid,
             Err(StringError::NumberError {
                 input: "not a number".to_owned(),
-                source: "not a number".parse::<u8>().unwrap_err()
+                cause: "not a number".parse::<u8>().unwrap_err().to_string()
             })
         );
     }

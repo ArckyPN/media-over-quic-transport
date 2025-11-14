@@ -11,7 +11,7 @@ license = "MIT"
 readme = "README.md"
 
 [dependencies]
-indexmap = "2.12.0"
+indexmap = { workspace = true }
 paste = "1"
 pretty_assertions = { workspace = true }
 snafu = { workspace = true }

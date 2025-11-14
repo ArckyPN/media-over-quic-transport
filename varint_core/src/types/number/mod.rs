@@ -2,6 +2,8 @@ mod error;
 mod varint;
 mod varint_number;
 
+use std::time::Duration;
+
 use {
     crate::{VarIntNumber, bitstore::BitStore},
     funty::{AtMost32, Unsigned},
@@ -267,6 +269,19 @@ impl FromStr for Number {
         let num: u64 = crate::number_from_str(s).context(ctx::StringSnafu)?;
 
         Self::new_number(num, None)
+    }
+}
+
+impl From<Number> for Duration {
+    fn from(value: Number) -> Self {
+        Duration::from_millis(value.number())
+    }
+}
+
+impl TryFrom<Duration> for Number {
+    type Error = NumberError;
+    fn try_from(value: Duration) -> Result<Self, Self::Error> {
+        Self::new_number(value.as_millis(), None)
     }
 }
 

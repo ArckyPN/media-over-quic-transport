@@ -144,7 +144,7 @@ impl Debug for PartialByte {
 }
 
 /// Error when Partial Byte reading fails
-#[derive(Debug, Snafu, PartialEq, Clone)]
+#[derive(Debug, Snafu, Clone, PartialEq, PartialOrd, Eq, Ord)]
 pub enum PartialByteError {
     /// tried to read invalid number of bits
     #[snafu(display("expected n of [1; 7], but got {n}"))]

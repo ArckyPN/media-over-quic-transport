@@ -58,7 +58,7 @@ mod tests {
                 request_id: 9u8.into(),
                 start_location: (13u8, 1u8).into(),
                 end_group: 50u8.into(),
-                subscriber_priority: 0.try_into().unwrap(),
+                subscriber_priority: 0.try_into().expect("will fit"),
                 parameters: Default::default(),
             };
             let b1 = vec![

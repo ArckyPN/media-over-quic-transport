@@ -21,11 +21,10 @@ pub mod setup {
             /// Only used when using QUIC as transport
             /// protocol instead of WebTransport
             path = 0x01 => Path as String,
-            max_request_id = 0x02 => MaxRequestId as String,
+            max_request_id = 0x02 => MaxRequestId as u64,
             auth_token = 0x03 => AuthorizationToken as crate::types::Token,
-            max_auth_token_cache_size = 0x04 => MaxAuthorizationTokenCacheSize as String,
             authority = 0x05 => Authority as String,
-            moqt_implementation = 0x06 => MoqtImplemenation as String, // draft spec also has this as 0x05 (same as authority)
+            moqt_implementation = 0x07 => MoqtImplemenation as String, // draft spec also has this as 0x05 (same as authority)
         }
     }
 
@@ -33,10 +32,10 @@ pub mod setup {
         crate::macro_helper::parameter_map! {
             // TODO correct types
             /// # TODO doc
-            max_request_id = 0x02 => MaxRequestId as String,
+            max_request_id = 0x02 => MaxRequestId as u64,
             auth_token = 0x03 => AuthorizationToken as crate::types::Token,
-            max_auth_token_cache_size = 0x04 => MaxAuthorizationTokenCacheSize as String,
-            moqt_implementation = 0x06 => MoqtImplemenation as String, // draft spec also has this as 0x05 (same as authority)
+            max_auth_token_cache_size = 0x04 => MaxAuthorizationTokenCacheSize as u64,
+            moqt_implementation = 0x07 => MoqtImplemenation as String, // draft spec also has this as 0x05 (same as authority)
         }
     }
 }
@@ -86,10 +85,12 @@ impl StructAttrs {
         name: &Ident,
         parameters: &P,
         parameter_map: &'static HashMap<&'static str, (u32, Vec<String>, String, String)>,
+        prefix: &str,
     ) -> TokenStream
     where
         P: Getter,
     {
+        let parameter_ty = format_ident!("{prefix}Parameter");
         let fns = parameter_map
             .iter()
             .map(|(k, (v, docs, variant, ty))| match parameters.get(k) {
@@ -108,8 +109,9 @@ impl StructAttrs {
                             #[#docs]
                         )*
                         pub fn #ident(&self) -> Option<&#ty> {
-                            self.parameters.get(#v).map(|p| match p {
-                                crate::types::Parameter::#variant(t) => t,
+                            let key: varint::x!(i) = #v.into();
+                            self.parameters.get(&key).map(|p| match p {
+                                crate::types::#parameter_ty::#variant(t) => t,
                                 _ => unreachable!(#unreachable_literal)
                             })
                         }
@@ -121,18 +123,20 @@ impl StructAttrs {
             impl #name {
                 #( #fns )*
 
-                pub fn parameter<T>(&self, key: T) -> Option<&crate::types::Parameter>
+                pub fn parameter<T>(&self, key: T) -> Option<&crate::types::#parameter_ty>
                 where
                     T: Into<varint::x!(i)>,
                 {
-                    self.parameters.get(key.into())
+                    let key: varint::x!(i) = key.into();
+                    self.parameters.get(&key)
                 }
 
-                pub fn parameter_mut<T>(&mut self, key: T) -> Option<&mut crate::types::Parameter>
+                pub fn parameter_mut<T>(&mut self, key: T) -> Option<&mut crate::types::#parameter_ty>
                 where
                     T: Into<varint::x!(i)>,
                 {
-                    self.parameters.get_mut(key.into())
+                    let key: varint::x!(i) = key.into();
+                    self.parameters.get_mut(&key)
                 }
             }
         }
@@ -145,11 +149,11 @@ impl StructAttrs {
                 path: true,
                 max_request_id: true,
                 auth_token: true,
-                max_auth_token_cache_size: true,
                 authority: true,
                 moqt_implementation: true,
             },
             setup::client::parameter_map(),
+            "ClientSetup",
         )
     }
 
@@ -163,24 +167,23 @@ impl StructAttrs {
                 moqt_implementation: true,
             },
             setup::server::parameter_map(),
+            "ServerSetup",
         )
     }
 
     fn quote_general(&self, name: &Ident, parameters: &general::Parameters) -> TokenStream {
-        self.quote_params(name, parameters, general::parameter_map())
+        self.quote_params(name, parameters, general::parameter_map(), "")
     }
 
     pub fn quote(&self, name: &Ident) -> TokenStream {
-        let Some(parameters) = &self.parameters else {
-            return quote! {};
-        };
-
         if name == "ClientSetup" {
             self.quote_client_setup(name)
         } else if name == "ServerSetup" {
             self.quote_server_setup(name)
-        } else {
+        } else if let Some(parameters) = &self.parameters {
             self.quote_general(name, parameters)
+        } else {
+            quote! {}
         }
     }
 }

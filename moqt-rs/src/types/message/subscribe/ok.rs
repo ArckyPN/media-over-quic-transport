@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use varint::{VarInt, x};
+use varint::{VarInt, VarIntNumber, x};
 
 use crate::types::{
     Parameters,

@@ -120,7 +120,7 @@ mod tests {
         fn test_data() -> Vec<(Self, Vec<u8>, usize)> {
             let v1 = Fetch {
                 request_id: 0u16.into(),
-                subscriber_priority: 64.try_into().unwrap(),
+                subscriber_priority: 64.try_into().expect("will fit"),
                 group_order: GroupOrder::Descending,
                 fetch_type: FetchType::Standalone,
                 standalone: Some(StandaloneFetch::new(
@@ -163,7 +163,7 @@ mod tests {
 
             let v2 = Fetch {
                 request_id: 9u8.into(),
-                subscriber_priority: <x!(8)>::new(13u8).unwrap(),
+                subscriber_priority: 13.try_into().expect("will fit"),
                 group_order: GroupOrder::Ascending,
                 fetch_type: FetchType::RelativeJoining,
                 standalone: None,
@@ -192,7 +192,7 @@ mod tests {
 
             let v3 = Self {
                 request_id: 33u8.into(),
-                subscriber_priority: 0.try_into().unwrap(),
+                subscriber_priority: 0.try_into().expect("will fit"),
                 group_order: GroupOrder::Original,
                 fetch_type: FetchType::AbsoluteJoining,
                 standalone: None,

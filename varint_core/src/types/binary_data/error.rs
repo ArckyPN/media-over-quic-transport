@@ -3,7 +3,7 @@ use {
     snafu::Snafu,
 };
 
-#[derive(Debug, Snafu, PartialEq, Clone)]
+#[derive(Debug, Snafu, Clone, PartialEq, PartialOrd, Eq, Ord)]
 #[snafu(visibility(pub), module(ctx))]
 pub enum BinaryDataError {
     /// Decoding Error

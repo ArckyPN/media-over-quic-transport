@@ -86,7 +86,7 @@ mod tests {
             let v1 = Self {
                 request_id: 9u8.into(),
                 forward: Forward::Disabled,
-                subscriber_priority: 35.try_into().unwrap(),
+                subscriber_priority: 35.try_into().expect("will fit"),
                 group_order: GroupOrder::Original,
                 filter_type: FilterType::AbsoluteRange,
                 start_location: Some((3u8, 1u8).into()),
@@ -109,7 +109,7 @@ mod tests {
             let v2 = Self {
                 request_id: 10u8.into(),
                 forward: Forward::Enabled,
-                subscriber_priority: 5.try_into().unwrap(),
+                subscriber_priority: 5.try_into().expect("will fit"),
                 group_order: GroupOrder::Ascending,
                 filter_type: FilterType::AbsoluteStart,
                 start_location: Some((1u8, 1u8).into()),
@@ -132,7 +132,7 @@ mod tests {
             let v3 = Self {
                 request_id: 10u8.into(),
                 forward: Forward::Enabled,
-                subscriber_priority: 5.try_into().unwrap(),
+                subscriber_priority: 5.try_into().expect("will fit"),
                 group_order: GroupOrder::Ascending,
                 filter_type: FilterType::NextGroupStart,
                 start_location: None,
