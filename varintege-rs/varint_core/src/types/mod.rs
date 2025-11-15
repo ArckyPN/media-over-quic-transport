@@ -17,6 +17,8 @@ pub use {
     number::{Number, NumberConversion, NumberError},
 };
 
+// TODO impl funty::Unsigned (also needs Integral) for all number types
+
 /// Returns the number of bits required to
 /// stored `v`.
 pub(super) fn num_bits<U>(v: U) -> usize

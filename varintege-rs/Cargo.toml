@@ -17,5 +17,5 @@ moq = ["varint_core/moq"]
 funty = "2.0.0"
 snafu = { workspace = true }
 
-varint_core = { path = "../varint_core" }
-varint_derive = { path = "../varint_derive" }
+varint_core = { path = "varint_core" }
+varint_derive = { path = "varint_derive" }

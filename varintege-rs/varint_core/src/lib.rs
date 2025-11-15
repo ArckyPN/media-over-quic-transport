@@ -73,6 +73,7 @@ where
     fn length_required() -> bool;
 }
 
+// TODO add funty::Unsigned bound
 pub trait VarIntNumber: VarInt
 where
     Self: Default,
