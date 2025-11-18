@@ -1,8 +1,10 @@
-use varint::{VarInt, x};
-
-use crate::types::{
-    Parameters,
-    misc::{FilterType, Forward, GroupOrder, Location},
+use {
+    crate::types::{
+        Parameters,
+        misc::{FilterType, Forward, GroupOrder, Location},
+    },
+    bon::bon,
+    varint::{VarInt, x},
 };
 
 /// ## PublishOk
@@ -73,6 +75,39 @@ pub struct PublishOk {
     ///
     /// [Parameters]
     pub parameters: Parameters,
+}
+
+#[bon]
+impl PublishOk {
+    #[builder] // TODO need custom builder
+    pub fn new(
+        #[builder(field)] parameters: Parameters,
+        request_id: x!(i),
+        forward: Forward,
+        #[builder(
+            with = |p: u8| <x!(8)>::try_from(p).expect("u8 will fit into 8 bits"), 
+            setters(
+                doc {
+                    /// TODO docs
+                }
+        ))]
+        subscriber_priority: x!(8),
+        group_order: GroupOrder,
+        filter_type: FilterType,
+        start_location: x!([Location]),
+        end_group: x!([i]),
+    ) -> Self {
+        Self {
+            request_id,
+            forward,
+            subscriber_priority,
+            group_order,
+            filter_type,
+            start_location,
+            end_group,
+            parameters,
+        }
+    }
 }
 
 #[cfg(test)]
