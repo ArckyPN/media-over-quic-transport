@@ -1,10 +1,13 @@
 use std::collections::HashMap;
 
+use convert_case::Casing;
 use darling::FromAttributes;
 use proc_macro_error2::abort_call_site;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{Attribute, FieldsNamed, Ident, LitStr, Meta, Path};
+
+use crate::crate_name;
 
 const PARAM_FIELD: &str = "parameters";
 
@@ -90,6 +93,8 @@ impl StructAttrs {
     where
         P: Getter,
     {
+        let varint = crate_name();
+
         let parameter_ty = format_ident!("{prefix}Parameter");
         let fns = parameter_map
             .iter()
@@ -109,7 +114,7 @@ impl StructAttrs {
                             #[#docs]
                         )*
                         pub fn #ident(&self) -> Option<&#ty> {
-                            let key: varint::x!(i) = #v.into();
+                            let key: #varint::x!(i) = #v.into();
                             self.parameters.get(&key).map(|p| match p {
                                 crate::types::#parameter_ty::#variant(t) => t,
                                 _ => unreachable!(#unreachable_literal)
@@ -119,26 +124,94 @@ impl StructAttrs {
                 }
             })
             .collect::<Vec<_>>();
+
+        let builder_mod = format_ident!(
+            "{}_builder",
+            name.to_string().to_case(convert_case::Case::Snake)
+        );
+        let builder_struct = format_ident!("{name}Builder");
+        let param_enum = format_ident!("{prefix}Parameter");
+
+        let setters = parameter_map
+            .iter()
+            .map(|(k, (v, docs, variant, ty))| {
+                let fn_name =
+                    format_ident!("{k}" /* variant.to_case(convert_case::Case::Snake) */,);
+                let docs = docs.iter().map(|d| syn::parse_str::<Meta>(d).unwrap());
+                let ty: Path = syn::parse_str(ty).expect("won't fail");
+                let variant = format_ident!("{variant}");
+
+                quote! {
+                    #(
+                        #[#docs]
+                    )*
+                    fn #fn_name<V>(mut self, value: V) -> Self
+                    where
+                        V: Into<#ty>
+                    {
+                        self.parameters.insert(
+                            <#varint::x!(i)>::from(#v as u32),
+                            crate::types::parameter::#param_enum::#variant(value.into())
+                        );
+                        self
+                    }
+                }
+            })
+            .collect::<Vec<_>>();
+
+        let setters = quote! {
+            impl<S: #builder_mod::State> #builder_struct<S> {
+                // TODO add specific
+                #(
+                    #setters
+                )*
+
+                /// Adds a generic number parameter.
+                fn number<K, V>(mut self, key: K, value: V) -> Self
+                where
+                    K: Into<#varint::x!(i)>,
+                    V: Into<#varint::x!(i)>,
+                {
+                    self.parameters
+                        .insert(key.into(), crate::types::parameter::#param_enum::Number(value.into()));
+                    self
+                }
+
+                /// Adds a generic bytes parameter.
+                fn bytes<K, V>(mut self, key: K, value: V) -> Self
+                where
+                    K: Into<#varint::x!(i)>,
+                    V: Into<#varint::x!(..)>,
+                {
+                    self.parameters
+                        .insert(key.into(), crate::types::parameter::#param_enum::Bytes(value.into()));
+                    self
+                }
+            }
+        };
+
         quote! {
             impl #name {
                 #( #fns )*
 
                 pub fn parameter<T>(&self, key: T) -> Option<&crate::types::#parameter_ty>
                 where
-                    T: Into<varint::x!(i)>,
+                    T: Into<#varint::x!(i)>,
                 {
-                    let key: varint::x!(i) = key.into();
+                    let key: #varint::x!(i) = key.into();
                     self.parameters.get(&key)
                 }
 
                 pub fn parameter_mut<T>(&mut self, key: T) -> Option<&mut crate::types::#parameter_ty>
                 where
-                    T: Into<varint::x!(i)>,
+                    T: Into<#varint::x!(i)>,
                 {
-                    let key: varint::x!(i) = key.into();
+                    let key: #varint::x!(i) = key.into();
                     self.parameters.get_mut(&key)
                 }
             }
+
+            #setters
         }
     }
 
