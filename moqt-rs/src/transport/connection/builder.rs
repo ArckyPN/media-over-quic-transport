@@ -35,8 +35,7 @@ impl Connection {
         Ok(Self::WebTransport(
             webtransport::Endpoint::client(config)?
                 .connect(connect)
-                .await
-                .context(ctx::WebTransportConnectingSnafu)?,
+                .await?,
         ))
     }
 

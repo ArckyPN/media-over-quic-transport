@@ -8,9 +8,9 @@ pub enum ConnectionError {
     #[snafu(display("io: {msg}"))]
     IoError { msg: String },
 
-    #[snafu(display("webtransport failed to connect"))]
+    #[snafu(display("webtransport failed to connect: {msg}"))]
     WebTransportConnecting {
-        source: webtransport::error::ConnectingError,
+        msg: webtransport::error::ConnectingError,
     },
 
     #[snafu(display("WebTransport connection failed"))]
@@ -42,5 +42,6 @@ pub enum ConnectionError {
 impl_from_msg_error! {
     ConnectionError = [
         IoError => std::io::Error,
+        WebTransportConnecting => webtransport::error::ConnectingError
     ]
 }
