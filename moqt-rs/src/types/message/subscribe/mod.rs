@@ -3,17 +3,16 @@ mod ok;
 mod un;
 mod update;
 
-pub use error::SubscribeError;
-pub use ok::SubscribeOk;
-pub use un::Unsubscribe;
-pub use update::SubscribeUpdate;
+pub use {error::SubscribeError, ok::SubscribeOk, un::Unsubscribe, update::SubscribeUpdate};
 
-use varint::{VarInt, x};
-
-use crate::types::{
-    Parameters,
-    misc::{FilterType, Forward, GroupOrder, Location},
-    track,
+use {
+    crate::types::{
+        Parameters,
+        misc::{FilterType, Forward, GroupOrder, Location},
+        track,
+    },
+    bon::bon,
+    varint::{VarInt, x},
 };
 
 /// ## Subscribe
@@ -135,6 +134,47 @@ pub struct Subscribe {
     pub parameters: Parameters,
 }
 
+impl<S: subscribe_builder::State> SubscribeBuilder<S> {
+    // param_builder! {}
+}
+
+#[bon]
+impl Subscribe {
+    #[builder]
+    pub fn new(
+        #[builder(field)] parameters: Parameters,
+        #[builder(into)] request_id: x!(i),
+        #[builder(into)] track_namespace: track::Namespace,
+        #[builder(into)] track_name: track::Name,
+        #[builder(
+            with = |p: u8| <x!(8)>::try_from(p).expect("u8 will fit into 8 bits"), 
+            setters(
+                doc {
+                    /// TODO docs
+                }
+        ))]
+        subscriber_priority: x!(8),
+        #[builder(into)] group_order: GroupOrder,
+        #[builder(into)] forward: Forward,
+        #[builder(into)] filter_type: FilterType,
+        #[builder(into)] start_location: x!([Location]),
+        #[builder(into)] end_group: x!([i]),
+    ) -> Self {
+        Self {
+            request_id,
+            track_namespace,
+            track_name,
+            subscriber_priority,
+            group_order,
+            forward,
+            filter_type,
+            start_location,
+            end_group,
+            parameters,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::test_helper::{TestData, varint_struct_test};
@@ -143,6 +183,12 @@ mod tests {
 
     impl TestData for Subscribe {
         fn test_data() -> Vec<(Self, Vec<u8>, usize)> {
+            // let v1 = Self::builder()
+            //     .request_id(15u8)
+            //     .track_namespace(["num", "boom"])
+            //     .track_name("bob")
+            //     .subscriber_priority(50.try_into().expect("will fit")) // TODO remaining params
+            //     .build();
             let v1 = Self {
                 request_id: 15u8.into(),
                 track_namespace: ["num", "boom"].into(),
