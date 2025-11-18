@@ -1,13 +1,14 @@
-use std::fmt::Debug;
-
-use snafu::{ResultExt, Snafu};
-use varint::{
-    VarInt, VarIntBytes, Writer,
-    core::{ReferenceReader, ReferenceWriter, WriterError},
-    x,
+use {
+    crate::types::misc::AliasType,
+    bon::Builder,
+    snafu::{ResultExt, Snafu},
+    std::fmt::Debug,
+    varint::{
+        VarInt, VarIntBytes, Writer,
+        core::{ReferenceReader, ReferenceWriter, WriterError},
+        x,
+    },
 };
-
-use crate::types::misc::AliasType;
 
 /// ## Authorization Token
 ///
@@ -15,13 +16,14 @@ use crate::types::misc::AliasType;
 /// used to authenticate actors in the system,
 /// whether or not they are allowed to perform
 /// the actions they are trying to do.
-#[derive(VarInt, PartialEq, Clone)]
+#[derive(VarInt, PartialEq, Clone, Builder)]
 pub struct Token {
     /// ## Token Type
     ///
     /// Defines how this Token is used.
     ///
     /// [AliasType]
+    #[builder(setters(vis = "", name = alias_typ_internal))]
     pub alias_typ: AliasType,
 
     /// ## Token Alias
@@ -36,6 +38,7 @@ pub struct Token {
     /// * [UseAlias](AliasType::UseAlias)
     ///
     /// Otherwise None.
+    #[builder(setters(vis = "", name = alias_internal))]
     #[varint(when(alias_typ = 0x0 || 0x1 || 0x2))]
     pub alias: x!([i]),
 
@@ -53,6 +56,7 @@ pub struct Token {
     /// * [UseValue](AliasType::UseValue)
     ///
     /// Otherwise None.
+    #[builder(setters(vis = "", name = typ_internal))]
     #[varint(when(alias_typ = 0x1 || 0x3))]
     pub typ: x!([i]), // TODO there are none defined right now. Once there this will likely be replaced by an Enum
 
@@ -67,8 +71,17 @@ pub struct Token {
     /// * [UseValue](AliasType::UseValue)
     ///
     /// Otherwise None.
+    #[builder(setters(vis = "", name = value_internal))]
     #[varint(when(alias_typ = 0x1 || 0x3))]
     value: x!([..]),
+}
+
+impl<S: token_builder::State> TokenBuilder<S> {
+    // TODO this might be doable with custom builder fields: https://bon-rs.com/guide/typestate-api/builder-fields
+    // fn delete(mut self) -> TokenBuilder<custom_builder::DeleteAlias<S>> {
+    //     self.alias_typ = AliasType::Delete;
+    //     self
+    // }
 }
 
 impl Token {
@@ -184,6 +197,7 @@ mod tests {
 
     impl TestData for Token {
         fn test_data() -> Vec<(Self, Vec<u8>, usize)> {
+            // let v1 = Self::builder().alias_typ(AliasType::Delete).build();
             let v1 = Self::new_delete(6u8);
             let b1 = vec![
                 0, // delete type
