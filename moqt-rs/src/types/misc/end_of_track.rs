@@ -22,6 +22,16 @@ varint_enum! {
     }
 }
 
+impl From<bool> for EndOfTrack {
+    fn from(value: bool) -> Self {
+        if value {
+            EndOfTrack::True
+        } else {
+            EndOfTrack::False
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::test_helper::varint_enum_test;
