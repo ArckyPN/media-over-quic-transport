@@ -9,9 +9,7 @@ pub enum ConnectionError {
     IoError { msg: String },
 
     #[snafu(display("webtransport failed to connect: {msg}"))]
-    WebTransportConnecting {
-        msg: webtransport::error::ConnectingError,
-    },
+    WebTransportConnecting { msg: String },
 
     #[snafu(display("WebTransport connection failed"))]
     WebTransportConnection {
