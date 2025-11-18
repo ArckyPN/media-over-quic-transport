@@ -7,14 +7,14 @@ use {
 #[snafu(visibility(pub), module(ctx))]
 pub enum BinaryDataError {
     /// Decoding Error
-    #[snafu(display("Reader: {source}"))]
+    #[snafu(display("failed to read"))]
     Reader { source: ReaderError },
 
     /// Encoding Error
-    #[snafu(display("Writer: {source}"))]
+    #[snafu(display("failed to write"))]
     Writer { source: WriterError },
 
     /// Invalid Length Encoding/Decoding
-    #[snafu(display("Writer: {source}"))]
+    #[snafu(display("invalid x(i)"))]
     Number { source: NumberError },
 }

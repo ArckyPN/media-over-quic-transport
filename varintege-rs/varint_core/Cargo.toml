@@ -14,9 +14,9 @@ readme = "README.md"
 moq = []
 
 [dependencies]
-bytes = { workspace = true }
+bytes.workspace = true
 funty = "2.0.0"
-indexmap = { workspace = true }
-paste = { workspace = true }
-pretty_assertions = { workspace = true }
-snafu = { workspace = true }
+indexmap.workspace = true
+paste.workspace = true
+pretty_assertions.workspace = true
+snafu.workspace = true

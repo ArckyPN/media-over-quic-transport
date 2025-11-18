@@ -14,12 +14,12 @@ readme = "README.md"
 
 [dependencies]
 darling = "0.21.3"
-paste = { workspace = true }
-pretty_assertions = { workspace = true }
+paste.workspace = true
+pretty_assertions.workspace = true
 proc-macro2 = "1"
 proc-macro-error2 = "2.0.1"
 quote = "1"
-snafu = { workspace = true }
+snafu.workspace = true
 syn = { version = "2" }
 
 varint_core = { path = "../varint_core" }

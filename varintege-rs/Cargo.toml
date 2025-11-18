@@ -15,7 +15,7 @@ moq = ["varint_core/moq"]
 
 [dependencies]
 funty = "2.0.0"
-snafu = { workspace = true }
+snafu.workspace = true
 
 varint_core = { path = "varint_core" }
 varint_derive = { path = "varint_derive" }

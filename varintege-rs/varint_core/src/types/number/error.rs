@@ -9,15 +9,15 @@ use {
 #[snafu(visibility(pub), module(ctx))]
 pub enum NumberError {
     /// Decoding Error
-    #[snafu(display("Reader: {source}"))]
+    #[snafu(display("failed to read"))]
     Reader { source: ReaderError },
 
     /// Encoding Error
-    #[snafu(display("Writer: {source}"))]
+    #[snafu(display("failed to write"))]
     Writer { source: WriterError },
 
     /// Internal Error
-    #[snafu(display("BitStore: {source}"))]
+    #[snafu(display("invalid BitStore"))]
     BitStore { source: bitstore::Error },
 
     /// Trying to create a VarInt with a too large value
@@ -25,7 +25,7 @@ pub enum NumberError {
     TooLarge { num: u128 },
 
     /// Failed FromStr
-    #[snafu(display("FromString: {source}"))]
+    #[snafu(display("invalid String representation"))]
     String { source: StringError },
 }
 

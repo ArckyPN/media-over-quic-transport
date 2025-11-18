@@ -8,7 +8,7 @@ use {
 #[snafu(visibility(pub), module(ctx))]
 pub enum BitRangeError {
     /// Decoding Error
-    #[snafu(display("Reader: {source}"))]
+    #[snafu(display("failed to read"))]
     Reader { source: ReaderError },
 
     /// number needs more bits than available
@@ -30,7 +30,7 @@ pub enum BitRangeError {
     InvalidLength { got: usize, min: usize, max: usize },
 
     /// Internal Error
-    #[snafu(display("BitStore: {source}"))]
+    #[snafu(display("invalid BitStore"))]
     BitStore { source: bitstore::Error },
 }
 

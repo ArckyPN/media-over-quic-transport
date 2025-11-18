@@ -10,11 +10,11 @@ use varint_core::{
 #[snafu(visibility(pub), module(ctx))]
 pub enum Error {
     // TODO moq feature
-    #[snafu(display("BinaryData: {source}"))]
+    #[snafu(display("invalid x(b)"))]
     BinaryData { source: BinaryDataError },
-    #[snafu(display("BitNumber: {source}"))]
+    #[snafu(display("invalid x(A)"))]
     BitNumber { source: BitNumberError },
-    #[snafu(display("BitRange: {source}"))]
+    #[snafu(display("invalid x(A..B)"))]
     BitRange { source: BitRangeError },
     #[snafu(display("Conversion: {cause}"))]
     ConversionError { cause: String },
@@ -22,13 +22,13 @@ pub enum Error {
     LengthMismatch { expected: usize, got: usize },
     #[snafu(display("a length was expected by the type"))]
     MissingLength,
-    #[snafu(display("Number: {source}"))]
+    #[snafu(display("invalid x(i)"))]
     Number { source: NumberError },
     // TODO moq feature
-    #[snafu(display("Tuple: {source}"))]
+    #[snafu(display("invalid x(tuple)"))]
     Tuple { source: TupleError },
     // TODO moq feature
-    #[snafu(display("IndexMap: {source}"))]
+    #[snafu(display("invalid IndexMap"))]
     IndexMap { source: IndexMapError },
     #[snafu(display("Unknown Value: got {value}"))]
     UnknownValue { value: u128 },
