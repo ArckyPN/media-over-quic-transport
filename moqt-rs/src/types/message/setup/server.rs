@@ -1,6 +1,4 @@
-use varint::prelude::*;
-
-use crate::types::ServerSetupParameters;
+use {crate::types::ServerSetupParameters, bon::bon, varint::prelude::*};
 
 /// ## ServerSetup
 ///
@@ -18,41 +16,42 @@ pub struct ServerSetup {
     parameters: ServerSetupParameters,
 }
 
+#[bon]
 impl ServerSetup {
-    pub fn new<V, P>(version: V, params: P) -> Self
-    where
-        V: Into<x!(i)>,
-        P: Into<ServerSetupParameters>,
-    {
+    #[builder]
+    pub fn new(
+        #[builder(field)] parameters: ServerSetupParameters,
+        #[builder(into, setters(
+        name = version,
+        doc {
+            /// TODO docs
+        }
+    ))]
+        selected_version: x!(i),
+    ) -> Self {
         Self {
-            selected_version: version.into(),
-            parameters: params.into(),
+            selected_version,
+            parameters,
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        test_helper::{TestData, varint_struct_test},
-        types::ServerSetupParameter,
-    };
+    use crate::test_helper::{TestData, varint_struct_test};
 
     use super::*;
 
     impl TestData for ServerSetup {
         fn test_data() -> Vec<(Self, Vec<u8>, usize)> {
-            let v1 = Self::new(2u8, []);
+            let v1 = Self::builder().version(2u8).build();
             let b1 = vec![
                 2, // selected version
                 0, // no parameters
             ];
             let l1 = b1.len() * 8;
 
-            let v2 = Self::new(
-                3u8,
-                [(0x02u8.into(), ServerSetupParameter::MaxRequestId(14))],
-            );
+            let v2 = Self::builder().version(3u8).max_request_id(14u8).build();
             let b2 = vec![
                 3,    // selected version
                 1,    // 1 parameter
