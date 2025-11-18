@@ -9,6 +9,7 @@ use {
         Parameters,
         misc::{FetchType, GroupOrder, JoiningFetch, StandaloneFetch},
     },
+    bon::bon,
     varint::{VarInt, x},
 };
 
@@ -105,6 +106,37 @@ pub struct Fetch {
     pub parameters: Parameters,
 }
 
+#[bon]
+impl Fetch {
+    #[builder] // TODO needs a custom builder
+    pub fn new(
+        #[builder(field)] parameters: Parameters,
+        request_id: x!(i),
+        #[builder(
+            with = |p: u8| <x!(8)>::try_from(p).expect("u8 will fit into 8 bits"), 
+            setters(
+                doc {
+                    /// TODO docs
+                }
+        ))]
+        subscriber_priority: x!(8),
+        group_order: GroupOrder,
+        fetch_type: FetchType,
+        standalone: x!([StandaloneFetch]),
+        joining: x!([JoiningFetch]),
+    ) -> Self {
+        Self {
+            request_id,
+            subscriber_priority,
+            group_order,
+            fetch_type,
+            standalone,
+            joining,
+            parameters,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use indexmap::IndexMap;
@@ -118,20 +150,20 @@ mod tests {
 
     impl TestData for Fetch {
         fn test_data() -> Vec<(Self, Vec<u8>, usize)> {
-            let v1 = Fetch {
-                request_id: 0u16.into(),
-                subscriber_priority: 64.try_into().expect("will fit"),
-                group_order: GroupOrder::Descending,
-                fetch_type: FetchType::Standalone,
-                standalone: Some(StandaloneFetch::new(
+            let v1 = Self::__orig_new(
+                Parameters::default(),
+                0u16.into(),
+                64.try_into().expect("will fit"),
+                GroupOrder::Descending,
+                FetchType::Standalone,
+                Some(StandaloneFetch::new(
                     ["moqt"],
                     "vod",
                     (0u8, 0u8),
                     [15u8, 15u8],
                 )),
-                joining: None,
-                parameters: Parameters::default(),
-            };
+                None,
+            );
             let b1 = [
                 [
                     0,  // ID
@@ -161,19 +193,19 @@ mod tests {
             .concat();
             let l1 = b1.len() * 8;
 
-            let v2 = Fetch {
-                request_id: 9u8.into(),
-                subscriber_priority: 13.try_into().expect("will fit"),
-                group_order: GroupOrder::Ascending,
-                fetch_type: FetchType::RelativeJoining,
-                standalone: None,
-                joining: Some(JoiningFetch::new(10u8, 5u8)),
-                parameters: IndexMap::from([(
+            let v2 = Self::__orig_new(
+                IndexMap::from([(
                     <x!(i)>::from(3u8),
                     Parameter::AuthorizationToken(Token::new_delete(7u8)),
                 )])
                 .into(),
-            };
+                9u8.into(),
+                13.try_into().expect("will fit"),
+                GroupOrder::Ascending,
+                FetchType::RelativeJoining,
+                None,
+                Some(JoiningFetch::new(10u8, 5u8)),
+            );
             let b2 = vec![
                 9,  // ID 9
                 13, // sub prio 9
@@ -190,14 +222,8 @@ mod tests {
             ];
             let l2 = b2.len() * 8;
 
-            let v3 = Self {
-                request_id: 33u8.into(),
-                subscriber_priority: 0.try_into().expect("will fit"),
-                group_order: GroupOrder::Original,
-                fetch_type: FetchType::AbsoluteJoining,
-                standalone: None,
-                joining: Some(JoiningFetch::new(44u8, 1u16)),
-                parameters: IndexMap::from([
+            let v3 = Self::__orig_new(
+                IndexMap::from([
                     (
                         <x!(i)>::from(3u8),
                         Parameter::AuthorizationToken(Token::new_delete(7u8)),
@@ -205,7 +231,13 @@ mod tests {
                     (<x!(i)>::from(10u8), Parameter::Number(21u8.into())),
                 ])
                 .into(),
-            };
+                33u8.into(),
+                0.try_into().expect("will fit"),
+                GroupOrder::Original,
+                FetchType::AbsoluteJoining,
+                None,
+                Some(JoiningFetch::new(44u8, 1u16)),
+            );
             let b3 = vec![
                 33, 0, 0, 3, 44, 1,  // you get the point now
                 2,  // 2 parameter
