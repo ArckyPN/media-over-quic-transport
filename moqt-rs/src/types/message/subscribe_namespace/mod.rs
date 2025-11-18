@@ -2,13 +2,13 @@ mod error;
 mod ok;
 mod un;
 
-pub use error::SubscribeNamespaceError;
-pub use ok::SubscribeNamespaceOk;
-pub use un::UnsubscribeNamespace;
+pub use {error::SubscribeNamespaceError, ok::SubscribeNamespaceOk, un::UnsubscribeNamespace};
 
-use varint::{VarInt, x};
-
-use crate::types::{Parameters, track::Namespace};
+use {
+    crate::types::{Parameters, track::Namespace},
+    bon::bon,
+    varint::{VarInt, x},
+};
 
 /// ## SubscribeNamespace
 ///
@@ -35,16 +35,29 @@ pub struct SubscribeNamespace {
     pub parameters: Parameters,
 }
 
+#[bon]
 impl SubscribeNamespace {
-    pub fn new<ID, N>(id: ID, namespace: N, params: Option<Parameters>) -> Self
-    where
-        ID: Into<x!(i)>,
-        N: Into<Namespace>,
-    {
+    #[builder]
+    pub fn new(
+        #[builder(field)] parameters: Parameters,
+        #[builder(into, setters(
+            name = id,
+            doc {
+                /// TODO docs
+            }
+        ))]
+        request_id: x!(i),
+        #[builder(into, setters(
+            doc {
+                /// TODO docs
+            }
+        ))]
+        namespace_prefix: Namespace,
+    ) -> Self {
         Self {
-            request_id: id.into(),
-            namespace_prefix: namespace.into(),
-            parameters: params.unwrap_or_default(),
+            request_id,
+            namespace_prefix,
+            parameters,
         }
     }
 }
@@ -57,7 +70,10 @@ mod tests {
 
     impl TestData for SubscribeNamespace {
         fn test_data() -> Vec<(Self, Vec<u8>, usize)> {
-            let v1 = Self::new(15u8, ["num", "boom"], None);
+            let v1 = Self::builder()
+                .id(15u8)
+                .namespace_prefix(["num", "boom"])
+                .build();
             let b1 = vec![
                 15, // request id: 15
                 2,  // 2 element tuple
