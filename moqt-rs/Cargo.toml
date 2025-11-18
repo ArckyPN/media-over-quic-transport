@@ -11,9 +11,19 @@ license = "MIT"
 readme = "README.md"
 
 [dependencies]
-indexmap = { workspace = true }
+clap.workspace = true
+bon.workspace = true
+indexmap.workspace = true
 paste = "1"
-pretty_assertions = { workspace = true }
-snafu = { workspace = true }
+pretty_assertions.workspace = true
+serde.workspace = true
+snafu.workspace = true
+strum-lite = "0.1.1"
+tokio.workspace = true
+tracing.workspace = true
 url = "2.5.7"
 varint = { path = "../varintege-rs", features = ["moq"], package = "varintege-rs" }
+
+# alias dependencies for native QUIC (quinn) and WebTransport (wtransport)
+quic = { version = "0.11.9", package = "quinn" }
+webtransport = { version = "0.6", package = "wtransport" }

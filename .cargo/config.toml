@@ -1,0 +1,3 @@
+[alias]
+relay = "run --package relay -- --bind [::]:4443 --cert bin/localhost.crt --key bin/localhost.key"
+chat = "run --package chat -- --relay https://localhost:4443/"
