@@ -1,6 +1,8 @@
-use varint::{VarInt, x};
-
-use crate::types::{Parameters, misc::Location};
+use {
+    crate::types::{Parameters, misc::Location},
+    bon::bon,
+    varint::{VarInt, x},
+};
 
 /// ## SubscribeUpdate
 ///
@@ -42,8 +44,48 @@ pub struct SubscribeUpdate {
     pub parameters: Parameters,
 }
 
+#[bon]
 impl SubscribeUpdate {
-    // pub fn new<ID, S, E, P>(id: ID, start: S, end: E, prio: P) -> Self
+    #[builder]
+    pub fn new(
+        #[builder(field)] parameters: Parameters,
+        #[builder(into, setters(
+            name = id,
+            doc {
+                /// TODO docs
+            }
+        ))]
+        request_id: x!(i),
+        #[builder(into, setters(
+            name = start,
+            doc {
+                /// TODO docs
+            }
+        ))]
+        start_location: Location,
+        #[builder(into, setters(
+            doc {
+                /// TODO docs
+            }
+        ))]
+        end_group: x!(i),
+        #[builder(
+            with = |p: u8| <x!(8)>::try_from(p).expect("u8 will fit into 8 bits"), 
+            setters(
+                doc {
+                    /// TODO docs
+                }
+        ))]
+        subscriber_priority: x!(8),
+    ) -> Self {
+        Self {
+            request_id,
+            start_location,
+            end_group,
+            subscriber_priority,
+            parameters,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -54,13 +96,12 @@ mod tests {
 
     impl TestData for SubscribeUpdate {
         fn test_data() -> Vec<(Self, Vec<u8>, usize)> {
-            let v1 = Self {
-                request_id: 9u8.into(),
-                start_location: (13u8, 1u8).into(),
-                end_group: 50u8.into(),
-                subscriber_priority: 0.try_into().expect("will fit"),
-                parameters: Default::default(),
-            };
+            let v1 = Self::builder()
+                .id(9u8)
+                .start((13u8, 1u8))
+                .end_group(50u8)
+                .subscriber_priority(0)
+                .build();
             let b1 = vec![
                 9,  // ID 9
                 13, // start group 13
