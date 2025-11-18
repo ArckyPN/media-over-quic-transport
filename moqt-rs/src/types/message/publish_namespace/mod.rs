@@ -3,14 +3,16 @@ mod done;
 mod error;
 mod ok;
 
-pub use cancel::PublishNamespaceCancel;
-pub use done::PublishNamespaceDone;
-pub use error::PublishNamespaceError;
-pub use ok::PublishNamespaceOk;
+pub use {
+    cancel::PublishNamespaceCancel, done::PublishNamespaceDone, error::PublishNamespaceError,
+    ok::PublishNamespaceOk,
+};
 
-use varint::{VarInt, x};
-
-use crate::types::{Parameters, track};
+use {
+    crate::types::{Parameters, track::Namespace},
+    bon::bon,
+    varint::{VarInt, x},
+};
 
 /// ## PublishNamespace
 ///
@@ -27,8 +29,8 @@ pub struct PublishNamespace {
     ///
     /// The advertised Namespace.
     ///
-    /// [Namespace](track::Namespace)
-    pub namespace: track::Namespace,
+    /// [Namespace]
+    pub namespace: Namespace,
 
     /// ## Parameters
     ///
@@ -36,16 +38,29 @@ pub struct PublishNamespace {
     pub parameters: Parameters,
 }
 
+#[bon]
 impl PublishNamespace {
-    pub fn new<ID, N>(id: ID, namespace: N, params: Option<Parameters>) -> Self
-    where
-        ID: Into<x!(i)>,
-        N: Into<track::Namespace>,
-    {
+    #[builder]
+    pub fn new(
+        #[builder(field)] parameters: Parameters,
+        #[builder(into, setters(
+            name = id,
+            doc {
+                /// TODO docs
+            }
+        ))]
+        request_id: x!(i),
+        #[builder(into, setters(
+            doc {
+                /// TODO docs
+            }
+        ))]
+        namespace: Namespace,
+    ) -> Self {
         Self {
-            request_id: id.into(),
-            namespace: namespace.into(),
-            parameters: params.unwrap_or_default(),
+            request_id,
+            namespace,
+            parameters,
         }
     }
 }
@@ -58,7 +73,7 @@ mod tests {
 
     impl TestData for PublishNamespace {
         fn test_data() -> Vec<(Self, Vec<u8>, usize)> {
-            let v1 = Self::new(3u8, ["num", "boom"], None);
+            let v1 = Self::builder().id(3u8).namespace(["num", "boom"]).build();
             let b1 = vec![
                 3, // request id: 3
                 2, // 2 element tuple
