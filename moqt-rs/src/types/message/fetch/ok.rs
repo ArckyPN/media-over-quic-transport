@@ -1,8 +1,10 @@
-use varint::{VarInt, x};
-
-use crate::types::{
-    Parameters,
-    misc::{EndOfTrack, GroupOrder, Location},
+use {
+    crate::types::{
+        Parameters,
+        misc::{EndOfTrack, GroupOrder, Location},
+    },
+    bon::bon,
+    varint::{VarInt, x},
 };
 
 /// ## FetchOk
@@ -47,27 +49,41 @@ pub struct FetchOk {
     pub parameters: Parameters,
 }
 
+#[bon]
 impl FetchOk {
-    // TODO bon builder
-    pub fn new<ID, G, E, L>(
-        id: ID,
-        group_order: G,
-        end_of_track: E,
-        end_location: L,
-        params: Option<Parameters>,
-    ) -> Self
-    where
-        ID: Into<x!(i)>,
-        G: Into<GroupOrder>,
-        E: Into<EndOfTrack>,
-        L: Into<Location>,
-    {
+    #[builder]
+    pub fn new(
+        #[builder(field)] parameters: Parameters,
+        #[builder(into, setters(
+            name = id,
+            doc {
+                /// TODO docs
+            }
+        ))]
+        request_id: x!(i),
+        #[builder(setters(doc {
+            /// TODO docs
+        }))]
+        group_order: GroupOrder,
+        #[builder(into, setters(
+            doc {
+                /// TODO docs
+            }
+        ))]
+        end_of_track: EndOfTrack,
+        #[builder(into, setters(
+            doc {
+                /// TODO docs
+            }
+        ))]
+        end_location: Location,
+    ) -> Self {
         Self {
-            request_id: id.into(),
-            group_order: group_order.into(),
-            end_of_track: end_of_track.into(),
-            end_location: end_location.into(),
-            parameters: params.unwrap_or_default(),
+            request_id,
+            group_order,
+            end_of_track,
+            end_location,
+            parameters,
         }
     }
 }
@@ -80,13 +96,12 @@ mod tests {
 
     impl TestData for FetchOk {
         fn test_data() -> Vec<(Self, Vec<u8>, usize)> {
-            let v1 = Self::new(
-                4u8,
-                GroupOrder::Original,
-                EndOfTrack::True,
-                (54u8, 3u8),
-                None,
-            );
+            let v1 = Self::builder()
+                .id(4u8)
+                .group_order(GroupOrder::Original)
+                .end_of_track(true)
+                .end_location((54u8, 3u8))
+                .build();
             let b1 = vec![
                 4,  // ID
                 0,  // original group order
