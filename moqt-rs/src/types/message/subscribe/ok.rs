@@ -1,16 +1,17 @@
-use std::time::Duration;
-
-use varint::{VarInt, VarIntNumber, x};
-
-use crate::types::{
-    Parameters,
-    misc::{ContentExists, GroupOrder, Location},
+use {
+    crate::types::{
+        Parameters,
+        misc::{ContentExists, GroupOrder, Location},
+    },
+    bon::bon,
+    std::time::Duration,
+    varint::{VarInt, VarIntNumber, x},
 };
 
 /// ## SubscribeOk
 ///
 /// Response to a successful [Subscribe](crate::type::message::Subscribe).
-#[derive(Debug, VarInt, PartialEq, Clone)]
+#[derive(Debug, VarInt, PartialEq, Clone)] // TODO needs a custom builder
 #[varint::draft_ref(v = 14)]
 #[varint(parameters(delivery_timeout, max_cache_duration))]
 pub struct SubscribeOk {
@@ -58,6 +59,31 @@ pub struct SubscribeOk {
     ///
     /// [Parameters]
     pub parameters: Parameters,
+}
+
+#[bon]
+impl SubscribeOk {
+    // TODO requires custom builder
+    #[builder]
+    pub fn new(
+        #[builder(field)] parameters: Parameters,
+        request_id: x!(i),
+        track_alias: x!(i),
+        expires: x!(i),
+        group_order: GroupOrder,
+        content_exists: ContentExists,
+        largest_location: x!([Location]),
+    ) -> Self {
+        Self {
+            request_id,
+            track_alias,
+            expires,
+            group_order,
+            content_exists,
+            largest_location,
+            parameters,
+        }
+    }
 }
 
 impl SubscribeOk {
