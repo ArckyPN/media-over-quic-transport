@@ -1,5 +1,6 @@
 use {
     crate::types::parameter::ClientSetupParameters,
+    bon::Builder,
     varint::{VarInt, x},
 };
 
@@ -7,42 +8,50 @@ use {
 ///
 /// The first Message that is part of the opening
 /// handshake to initiate a MOQT Session.
-#[derive(Debug, VarInt, PartialEq, Clone)]
+#[derive(Debug, VarInt, PartialEq, Clone, Builder)]
 #[varint::draft_ref(v = 14, rename = "client_setup-and-server_set")]
 pub struct ClientSetup {
     /// ## Supported Versions
     ///
     /// List of the supported Versions by the Client.
     #[varint(count = x(i))]
+    #[builder(field)]
     pub supported_versions: x!(i; ...),
+    #[builder(field)]
     pub parameters: ClientSetupParameters,
 }
 
-impl ClientSetup {
-    pub fn new<V, P>(versions: &[V], params: P) -> Self
+impl<S: client_setup_builder::State> ClientSetupBuilder<S> {
+    /// Adds a supported Version to [ClientSetup]
+    pub fn version<V>(mut self, v: V) -> Self
     where
-        V: Into<x!(i)> + Clone,
-        P: Into<ClientSetupParameters>,
+        V: Into<x!(i)>,
     {
-        Self {
-            supported_versions: Vec::from_iter(versions.iter().map(|v| v.clone().into())),
-            parameters: params.into(),
-        }
+        self.supported_versions.push(v.into());
+        self
+    }
+
+    /// Adds supported Versions from an Iterator to [ClientSetup]
+    pub fn versions<I, T>(mut self, versions: I) -> Self
+    where
+        I: IntoIterator<Item = T>,
+        T: Into<x!(i)>,
+    {
+        self.supported_versions
+            .extend(versions.into_iter().map(Into::into));
+        self
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        test_helper::{TestData, varint_struct_test},
-        types::ClientSetupParameter,
-    };
+    use crate::test_helper::{TestData, varint_struct_test};
 
     use super::*;
 
     impl TestData for ClientSetup {
         fn test_data() -> Vec<(Self, Vec<u8>, usize)> {
-            let v1 = Self::new(&[1u8, 2u8], []);
+            let v1 = Self::builder().versions(&[1u8, 2u8]).build();
             let b1 = vec![
                 2, // num of supported version
                 1, 2, // supported versions
@@ -50,10 +59,12 @@ mod tests {
             ];
             let l1 = b1.len() * 8;
 
-            let v2 = Self::new(
-                &[1u8, 2u8, 3u8],
-                [(0x02u8.into(), ClientSetupParameter::MaxRequestId(14))],
-            );
+            let v2 = Self::builder()
+                .version(1u8)
+                .version(2u8)
+                .version(3u8)
+                .max_request_id(14u8)
+                .build();
             let b2 = vec![
                 3, // num of supported version
                 1, 2, 3,    // supported versions
