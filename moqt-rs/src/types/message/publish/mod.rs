@@ -2,22 +2,22 @@ mod done;
 mod error;
 mod ok;
 
-pub use done::PublishDone;
-pub use error::PublishError;
-pub use ok::PublishOk;
+pub use {done::PublishDone, error::PublishError, ok::PublishOk};
 
-use varint::{VarInt, x};
-
-use crate::types::{
-    Parameters,
-    misc::{ContentExists, Forward, GroupOrder, Location},
-    track,
+use {
+    crate::types::{
+        Parameters,
+        misc::{ContentExists, Forward, GroupOrder, Location},
+        track::{Name, Namespace},
+    },
+    bon::bon,
+    varint::{VarInt, x},
 };
 
 /// ## Publish
 ///
 /// Initiates the publishing of a new Track.
-#[derive(Debug, VarInt, PartialEq, Clone)]
+#[derive(Debug, VarInt, PartialEq, Clone)] // TODO needs a custom builder
 #[varint::draft_ref(v = 14)]
 #[varint(parameters(auth_token, max_cache_duration))]
 pub struct Publish {
@@ -28,15 +28,15 @@ pub struct Publish {
     ///
     /// The Namespace of the new Track.
     ///
-    /// [Namespace](track::Namespace)
-    pub namespace: track::Namespace,
+    /// [Namespace]
+    pub namespace: Namespace,
 
     /// ## Track Name
     ///
     /// The Name of the new Track.
     ///
     /// [Name](track::Name)
-    pub name: track::Name,
+    pub name: Name,
 
     /// ## Track Alias
     ///
@@ -82,6 +82,34 @@ pub struct Publish {
     ///
     /// [Parameters]
     pub parameters: Parameters,
+}
+
+#[bon]
+impl Publish {
+    #[builder] // TODO requires custom builder
+    pub fn new(
+        #[builder(field)] parameters: Parameters,
+        request_id: x!(i),
+        namespace: Namespace,
+        name: Name,
+        alias: x!(i),
+        group_order: GroupOrder,
+        content_exists: ContentExists,
+        largest_location: x!([Location]),
+        forward: Forward,
+    ) -> Self {
+        Self {
+            request_id,
+            namespace,
+            name,
+            alias,
+            group_order,
+            content_exists,
+            largest_location,
+            forward,
+            parameters,
+        }
+    }
 }
 
 #[cfg(test)]
