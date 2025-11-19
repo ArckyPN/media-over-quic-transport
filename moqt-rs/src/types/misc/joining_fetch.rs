@@ -1,3 +1,4 @@
+use bon::Builder;
 use varint::{VarInt, x};
 
 /// ## Joining Fetch
@@ -5,12 +6,18 @@ use varint::{VarInt, x};
 /// Join a Subscribe with a preceding Fetch.
 ///
 /// [Fetch](crate::types::message::Fetch)
-#[derive(Debug, VarInt, Clone, PartialEq)]
+#[derive(Debug, VarInt, Clone, PartialEq, Builder)]
 pub struct JoiningFetch {
     /// ## Request ID
     ///
     /// The associated Request ID of the
     /// Subscribe to join.
+    #[builder(into, setters(
+        name = id,
+        doc {
+            /// Sets the request ID on [JoiningFetch].
+        }
+    ))]
     pub request_id: x!(i),
 
     /// ## Starting Group
@@ -20,20 +27,12 @@ pub struct JoiningFetch {
     /// the Joining Fetch type.
     ///
     /// [FetchType](crate::types::misc::FetchType)
-    pub start: x!(i),
-}
-
-impl JoiningFetch {
-    pub fn new<I, S>(request_id: I, start: S) -> Self
-    where
-        I: Into<x!(i)>,
-        S: Into<x!(i)>,
-    {
-        Self {
-            request_id: request_id.into(),
-            start: start.into(),
+    #[builder(into, setters(
+        doc {
+            /// Sets the start group on [JoiningFetch].
         }
-    }
+    ))]
+    pub start: x!(i),
 }
 
 #[cfg(test)]
@@ -44,7 +43,7 @@ mod tests {
 
     impl TestData for JoiningFetch {
         fn test_data() -> Vec<(Self, Vec<u8>, usize)> {
-            let v1 = Self::new(5u8, 0u8);
+            let v1 = Self::builder().id(5u8).start(0u8).build();
             let b1 = vec![5, 0];
             let l1 = b1.len() * 8;
 
