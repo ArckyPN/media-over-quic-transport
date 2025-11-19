@@ -52,7 +52,7 @@ mod sub {
                     #[builder(into, setters(
                         name = id,
                         doc {
-                            #[doc = "Sets the request ID on [" [< $name $ty >] "]"]
+                            #[doc = "Sets the request ID on [" [< $name $ty >] "]."]
                         }
                     ))]
                     pub request_id: varint::x!(i),
@@ -60,7 +60,7 @@ mod sub {
                     /// ## Status Code
                     #[builder(into, setters(
                         doc {
-                            #[doc = "Sets the status code on [" [< $name $ty >] "]"]
+                            #[doc = "Sets the status code on [" [< $name $ty >] "]."]
                         }
                     ))]
                     pub code: $crate::types::error_code::$name,
@@ -69,9 +69,8 @@ mod sub {
                     ///
                     /// [ReasonPhrase]($crate::types::reason_phrase::ReasonPhrase)
                     #[builder(into, setters(
-                        name = id,
                         doc {
-                            #[doc = "Sets the reason phrase on [" [< $name $ty >] "]"]
+                            #[doc = "Sets the reason phrase on [" [< $name $ty >] "]."]
                         }
                     ))]
                     pub reason: $crate::types::misc::ReasonPhrase,
