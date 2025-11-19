@@ -42,9 +42,15 @@ use {
 /// send past Object until the active Subscription
 /// point has been reached. From there the Fetch
 /// ends and the Subscribe takes over.
+// use fetch_with_relative_joining_builder
 #[derive(Debug, VarInt, PartialEq, Clone)]
 #[varint::draft_ref(v = 14)]
-#[varint(parameters(auth_token))]
+#[varint(
+    parameters(auth_token),
+    builders = with_relative_joining,
+    builders = with_standalone,
+    builders = with_absolute_joining,
+)]
 pub struct Fetch {
     /// ## Request ID
     pub request_id: x!(i),
@@ -108,30 +114,125 @@ pub struct Fetch {
 
 #[bon]
 impl Fetch {
-    #[builder] // TODO needs a custom builder
-    pub fn new(
+    #[builder(finish_fn = build)]
+    pub fn with_standalone(
         #[builder(field)] parameters: Parameters,
+        #[builder(finish_fn)] standalone: StandaloneFetch,
+
+        #[builder(into, setters(
+            name = id,
+            doc {
+                /// Sets the request ID on [Fetch].
+            }
+        ))]
         request_id: x!(i),
+
         #[builder(
+            name = sub_prio,
             with = |p: u8| <x!(8)>::try_from(p).expect("u8 will fit into 8 bits"), 
             setters(
                 doc {
-                    /// TODO docs
+                    /// Sets the subscriber priority on [Fetch].
                 }
         ))]
         subscriber_priority: x!(8),
+
+        #[builder(setters(
+            doc {
+                /// Sets the group order on [Fetch].
+            }
+        ))]
         group_order: GroupOrder,
-        fetch_type: FetchType,
-        standalone: x!([StandaloneFetch]),
-        joining: x!([JoiningFetch]),
     ) -> Self {
         Self {
             request_id,
             subscriber_priority,
             group_order,
-            fetch_type,
-            standalone,
-            joining,
+            fetch_type: FetchType::Standalone,
+            standalone: Some(standalone),
+            joining: None,
+            parameters,
+        }
+    }
+
+    #[builder(finish_fn = build)]
+    pub fn with_relative_joining(
+        #[builder(field)] parameters: Parameters,
+        #[builder(finish_fn)] relative_joining: JoiningFetch,
+
+        #[builder(into, setters(
+            name = id,
+            doc {
+                /// Sets the request ID on [Fetch].
+            }
+        ))]
+        request_id: x!(i),
+
+        #[builder(
+            name = sub_prio,
+            with = |p: u8| <x!(8)>::try_from(p).expect("u8 will fit into 8 bits"), 
+            setters(
+                doc {
+                    /// Sets the subscriber priority on [Fetch].
+                }
+        ))]
+        subscriber_priority: x!(8),
+
+        #[builder(setters(
+            doc {
+                /// Sets the group order on [Fetch].
+            }
+        ))]
+        group_order: GroupOrder,
+    ) -> Self {
+        Self {
+            request_id,
+            subscriber_priority,
+            group_order,
+            fetch_type: FetchType::RelativeJoining,
+            standalone: None,
+            joining: Some(relative_joining),
+            parameters,
+        }
+    }
+
+    #[builder(finish_fn = build)]
+    pub fn with_absolute_joining(
+        #[builder(field)] parameters: Parameters,
+        #[builder(finish_fn)] relative_joining: JoiningFetch,
+
+        #[builder(into, setters(
+            name = id,
+            doc {
+                /// Sets the request ID on [Fetch].
+            }
+        ))]
+        request_id: x!(i),
+
+        #[builder(
+            name = sub_prio,
+            with = |p: u8| <x!(8)>::try_from(p).expect("u8 will fit into 8 bits"), 
+            setters(
+                doc {
+                    /// Sets the subscriber priority on [Fetch].
+                }
+        ))]
+        subscriber_priority: x!(8),
+
+        #[builder(setters(
+            doc {
+                /// Sets the group order on [Fetch].
+            }
+        ))]
+        group_order: GroupOrder,
+    ) -> Self {
+        Self {
+            request_id,
+            subscriber_priority,
+            group_order,
+            fetch_type: FetchType::AbsoluteJoining,
+            standalone: None,
+            joining: Some(relative_joining),
             parameters,
         }
     }
@@ -139,31 +240,28 @@ impl Fetch {
 
 #[cfg(test)]
 mod tests {
-    use indexmap::IndexMap;
 
     use crate::{
         test_helper::{TestData, varint_struct_test},
-        types::parameter::{Parameter, Token},
+        types::parameter::Token,
     };
 
     use super::*;
 
     impl TestData for Fetch {
         fn test_data() -> Vec<(Self, Vec<u8>, usize)> {
-            let v1 = Self::__orig_new(
-                Parameters::default(),
-                0u16.into(),
-                64.try_into().expect("will fit"),
-                GroupOrder::Descending,
-                FetchType::Standalone,
-                Some(StandaloneFetch::new(
-                    ["moqt"],
-                    "vod",
-                    (0u8, 0u8),
-                    [15u8, 15u8],
-                )),
-                None,
-            );
+            let v1 = Self::with_standalone()
+                .id(0u16)
+                .sub_prio(64)
+                .group_order(GroupOrder::Descending)
+                .build(
+                    StandaloneFetch::builder()
+                        .namespace(["moqt"])
+                        .name("vod")
+                        .start(0u8, 0u8)
+                        .end(15u8, 15u8)
+                        .build(),
+                );
             let b1 = [
                 [
                     0,  // ID
@@ -193,19 +291,12 @@ mod tests {
             .concat();
             let l1 = b1.len() * 8;
 
-            let v2 = Self::__orig_new(
-                IndexMap::from([(
-                    <x!(i)>::from(3u8),
-                    Parameter::AuthorizationToken(Token::new_delete(7u8)),
-                )])
-                .into(),
-                9u8.into(),
-                13.try_into().expect("will fit"),
-                GroupOrder::Ascending,
-                FetchType::RelativeJoining,
-                None,
-                Some(JoiningFetch::new(10u8, 5u8)),
-            );
+            let v2 = Self::with_relative_joining()
+                .id(9u8)
+                .sub_prio(13)
+                .group_order(GroupOrder::Ascending)
+                .auth_token(Token::new_delete(7u8))
+                .build(JoiningFetch::builder().id(10u8).start(5u8).build());
             let b2 = vec![
                 9,  // ID 9
                 13, // sub prio 9
@@ -222,22 +313,13 @@ mod tests {
             ];
             let l2 = b2.len() * 8;
 
-            let v3 = Self::__orig_new(
-                IndexMap::from([
-                    (
-                        <x!(i)>::from(3u8),
-                        Parameter::AuthorizationToken(Token::new_delete(7u8)),
-                    ),
-                    (<x!(i)>::from(10u8), Parameter::Number(21u8.into())),
-                ])
-                .into(),
-                33u8.into(),
-                0.try_into().expect("will fit"),
-                GroupOrder::Original,
-                FetchType::AbsoluteJoining,
-                None,
-                Some(JoiningFetch::new(44u8, 1u16)),
-            );
+            let v3 = Self::with_absolute_joining()
+                .id(33u8)
+                .sub_prio(0)
+                .auth_token(Token::new_delete(7u8))
+                .number(10u8, 21u8)
+                .group_order(GroupOrder::Original)
+                .build(JoiningFetch::builder().id(44u8).start(1u16).build());
             let b3 = vec![
                 33, 0, 0, 3, 44, 1,  // you get the point now
                 2,  // 2 parameter
