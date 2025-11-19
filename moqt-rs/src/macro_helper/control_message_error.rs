@@ -45,16 +45,35 @@ mod sub {
             $name:ident + $ty:ident
         ) => {
             paste::paste! {
-                #[derive(varint::VarInt)]
+                #[derive(varint::VarInt, bon::Builder)]
                 $(#[$attrss])*
                 pub struct [< $name $ty >] {
                     /// ## Request ID
+                    #[builder(into, setters(
+                        name = id,
+                        doc {
+                            #[doc = "Sets the request ID on [" [< $name $ty >] "]"]
+                        }
+                    ))]
                     pub request_id: varint::x!(i),
+
                     /// ## Status Code
+                    #[builder(into, setters(
+                        doc {
+                            #[doc = "Sets the status code on [" [< $name $ty >] "]"]
+                        }
+                    ))]
                     pub code: $crate::types::error_code::$name,
+
                     /// ## Status Message
                     ///
                     /// [ReasonPhrase]($crate::types::reason_phrase::ReasonPhrase)
+                    #[builder(into, setters(
+                        name = id,
+                        doc {
+                            #[doc = "Sets the reason phrase on [" [< $name $ty >] "]"]
+                        }
+                    ))]
                     pub reason: $crate::types::misc::ReasonPhrase,
                 }
 
