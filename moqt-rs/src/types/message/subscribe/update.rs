@@ -46,26 +46,29 @@ pub struct SubscribeUpdate {
 
 #[bon]
 impl SubscribeUpdate {
+    /// Creates a Builder for [SubscribeUpdate].
     #[builder]
     pub fn new(
         #[builder(field)] parameters: Parameters,
         #[builder(into, setters(
             name = id,
             doc {
-                /// TODO docs
+                /// Sets the request ID on [SubscribeUpdate].
             }
         ))]
         request_id: x!(i),
-        #[builder(into, setters(
+        #[builder(
+            with = |group: impl Into<varint::x!(i)>, object: impl Into<varint::x!(i)>| (group.into(), object.into()).into(),
+            setters(
             name = start,
             doc {
-                /// TODO docs
+                /// Sets the start location on [SubscribeUpdate].
             }
         ))]
         start_location: Location,
         #[builder(into, setters(
             doc {
-                /// TODO docs
+                /// Sets the end group on [SubscribeUpdate].
             }
         ))]
         end_group: x!(i),
@@ -73,7 +76,7 @@ impl SubscribeUpdate {
             with = |p: u8| <x!(8)>::try_from(p).expect("u8 will fit into 8 bits"), 
             setters(
                 doc {
-                    /// TODO docs
+                    /// Sets the subscriber priority on [SubscribeUpdate].
                 }
         ))]
         subscriber_priority: x!(8),
@@ -98,7 +101,7 @@ mod tests {
         fn test_data() -> Vec<(Self, Vec<u8>, usize)> {
             let v1 = Self::builder()
                 .id(9u8)
-                .start((13u8, 1u8))
+                .start(13u8, 1u8)
                 .end_group(50u8)
                 .subscriber_priority(0)
                 .build();
