@@ -1,4 +1,6 @@
 #[cfg(feature = "moq")]
+mod duration;
+#[cfg(feature = "moq")]
 mod index_map;
 
 #[cfg(feature = "moq")]
