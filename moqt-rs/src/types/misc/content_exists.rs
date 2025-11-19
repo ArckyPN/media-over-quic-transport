@@ -8,7 +8,7 @@ varint_enum! {
     ///
     /// [Publish](crate::types::message::Publish)
     /// [SubscribeOk](crate::types::message::SubscribeOk)
-    #[derive(Debug, PartialEq, Clone, Copy)]
+    #[derive(Debug, PartialEq, Clone, Copy, Default)]
     #[varint(value = x(i))]
     #[varint::draft_ref(v = 14, rename = "section-9.8-3.5.1")]
     pub enum ContentExists {
@@ -22,7 +22,14 @@ varint_enum! {
         ///
         /// No Objects has been published on
         /// this Track.
+        #[default]
         No = 0x0,
+    }
+}
+
+impl From<bool> for ContentExists {
+    fn from(value: bool) -> Self {
+        if value { Self::Yes } else { Self::No }
     }
 }
 
