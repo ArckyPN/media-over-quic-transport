@@ -17,9 +17,13 @@ use {
 /// ## Publish
 ///
 /// Initiates the publishing of a new Track.
-#[derive(Debug, VarInt, PartialEq, Clone)] // TODO needs a custom builder
+#[derive(Debug, VarInt, PartialEq, Clone)]
 #[varint::draft_ref(v = 14)]
-#[varint(parameters(auth_token, max_cache_duration))]
+#[varint(
+    parameters(auth_token, max_cache_duration),
+    builder = with_content,
+    builder = without_content,
+)]
 pub struct Publish {
     /// ## Request ID
     pub request_id: x!(i),
@@ -86,16 +90,60 @@ pub struct Publish {
 
 #[bon]
 impl Publish {
-    #[builder] // TODO requires custom builder
-    pub fn new(
+    #[builder(finish_fn = build)]
+    pub fn with_content(
         #[builder(field)] parameters: Parameters,
+
+        #[builder(into, setters(
+            name = id,
+            doc {
+                /// Sets the request ID on [Publish].
+            }
+        ))]
         request_id: x!(i),
+
+        #[builder(into, setters(
+            doc {
+                /// Sets the track namespace on [Publish].
+            }
+        ))]
         namespace: Namespace,
+
+        #[builder(into, setters(
+            doc {
+                /// Sets the track name on [Publish].
+            }
+        ))]
         name: Name,
+
+        #[builder(into, setters(
+            doc {
+                /// Sets the session alias on [Publish].
+            }
+        ))]
         alias: x!(i),
+
+        #[builder(setters(
+            doc {
+                /// Sets the group order on [Publish].
+            }
+        ))]
         group_order: GroupOrder,
-        content_exists: ContentExists,
-        largest_location: x!([Location]),
+
+        #[builder(
+            with = |group: impl Into<varint::x!(i)>, object: impl Into<varint::x!(i)>| (group.into(), object.into()).into(),
+            setters(
+            doc {
+                /// Sets the end location on [Publish].
+            }
+        ))]
+        largest_location: Location,
+
+        #[builder(into, setters(
+            doc {
+                /// Sets the forwarding on [Publish].
+            }
+        ))]
         forward: Forward,
     ) -> Self {
         Self {
@@ -104,8 +152,68 @@ impl Publish {
             name,
             alias,
             group_order,
-            content_exists,
-            largest_location,
+            content_exists: ContentExists::Yes,
+            largest_location: Some(largest_location),
+            forward,
+            parameters,
+        }
+    }
+
+    #[builder(finish_fn = build)]
+    pub fn without_content(
+        #[builder(field)] parameters: Parameters,
+
+        #[builder(into, setters(
+            name = id,
+            doc {
+                /// Sets the request ID on [Publish].
+            }
+        ))]
+        request_id: x!(i),
+
+        #[builder(into, setters(
+            doc {
+                /// Sets the track namespace on [Publish].
+            }
+        ))]
+        namespace: Namespace,
+
+        #[builder(into, setters(
+            doc {
+                /// Sets the track name on [Publish].
+            }
+        ))]
+        name: Name,
+
+        #[builder(into, setters(
+            doc {
+                /// Sets the session alias on [Publish].
+            }
+        ))]
+        alias: x!(i),
+
+        #[builder(setters(
+            doc {
+                /// Sets the group order on [Publish].
+            }
+        ))]
+        group_order: GroupOrder,
+
+        #[builder(into, setters(
+            doc {
+                /// Sets the forwarding on [Publish].
+            }
+        ))]
+        forward: Forward,
+    ) -> Self {
+        Self {
+            request_id,
+            namespace,
+            name,
+            alias,
+            group_order,
+            content_exists: ContentExists::No,
+            largest_location: None,
             forward,
             parameters,
         }
@@ -120,17 +228,14 @@ mod tests {
 
     impl TestData for Publish {
         fn test_data() -> Vec<(Self, Vec<u8>, usize)> {
-            let v1 = Self {
-                request_id: 9u8.into(),
-                namespace: ["moq"].into(),
-                name: "vod".into(),
-                alias: 5u8.into(),
-                group_order: GroupOrder::Original,
-                content_exists: ContentExists::No,
-                largest_location: None,
-                forward: Forward::Enabled,
-                parameters: Default::default(),
-            };
+            let v1 = Self::without_content()
+                .id(9u8)
+                .namespace(["moq"])
+                .name("vod")
+                .alias(5u8)
+                .group_order(GroupOrder::Original)
+                .forward(true)
+                .build();
             let b1 = vec![
                 9, // ID 9
                 1, // 1 tuple namespace
@@ -147,17 +252,15 @@ mod tests {
             ];
             let l1 = b1.len() * 8;
 
-            let v2 = Self {
-                request_id: 9u8.into(),
-                namespace: ["moq"].into(),
-                name: "vod".into(),
-                alias: 5u8.into(),
-                group_order: GroupOrder::Original,
-                content_exists: ContentExists::Yes,
-                largest_location: Some((43u8, 15u8).into()),
-                forward: Forward::Enabled,
-                parameters: Default::default(),
-            };
+            let v2 = Self::with_content()
+                .id(9u8)
+                .namespace(["moq"])
+                .name("vod")
+                .alias(5u8)
+                .group_order(GroupOrder::Original)
+                .largest_location(43u8, 15u8)
+                .forward(true)
+                .build();
             let b2 = vec![
                 9, // ID 9
                 1, // 1 tuple namespace
