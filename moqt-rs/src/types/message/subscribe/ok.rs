@@ -5,7 +5,7 @@ use {
     },
     bon::bon,
     std::time::Duration,
-    varint::{VarInt, VarIntNumber, x},
+    varint::{VarInt, x},
 };
 
 /// ## SubscribeOk
@@ -21,7 +21,7 @@ pub struct SubscribeOk {
     /// ## Track Alias
     ///
     /// The assigned Track Alias.
-    pub track_alias: x!(i),
+    pub alias: x!(i),
 
     /// ## Expiry
     ///
@@ -29,7 +29,7 @@ pub struct SubscribeOk {
     /// the Subscription will expire.
     ///
     /// 0 indicates no expiration.
-    pub expires: x!(i),
+    pub expires: Duration,
 
     /// ## Group Order
     ///
@@ -61,77 +61,67 @@ pub struct SubscribeOk {
     pub parameters: Parameters,
 }
 
+impl<S: subscribe_ok_builder::State> SubscribeOkBuilder<S> {
+    /// Optional setter for [`content_exists`](SubscribeOk::content_exists) and
+    /// [`largest_location`](SubscribeOk::largest_location) on [SubscribeOk].
+    pub fn with_content<G, O>(mut self, group: G, object: O) -> Self
+    where
+        G: Into<x!(i)>,
+        O: Into<x!(i)>,
+    {
+        self.content_exists = ContentExists::Yes;
+        self.largest_location = Some((group.into(), object.into()).into());
+        self
+    }
+}
+
 #[bon]
 impl SubscribeOk {
-    // TODO requires custom builder
+    /// Creates a Builder for [SubscribeOk].
     #[builder]
     pub fn new(
         #[builder(field)] parameters: Parameters,
+        #[builder(field)] content_exists: ContentExists,
+        #[builder(field)] largest_location: x!([Location]),
+
+        #[builder(into, setters(
+            name = id,
+            doc {
+                /// Sets the request ID on [SubscribeOk].
+            }
+        ))]
         request_id: x!(i),
-        track_alias: x!(i),
-        expires: x!(i),
+
+        #[builder(into, setters(
+            doc {
+                /// Sets the track alias on [SubscribeOk].
+            }
+        ))]
+        alias: x!(i),
+
+        #[builder(setters(
+            doc {
+                /// Sets the expiration duration on [SubscribeOk].
+            }
+        ))]
+        expires: Duration,
+
+        #[builder(setters(
+            doc {
+                /// Sets the group order on [SubscribeOk].
+            }
+        ))]
         group_order: GroupOrder,
-        content_exists: ContentExists,
-        largest_location: x!([Location]),
     ) -> Self {
         Self {
             request_id,
-            track_alias,
+            alias,
             expires,
             group_order,
             content_exists,
             largest_location,
             parameters,
         }
-    }
-}
-
-impl SubscribeOk {
-    pub fn new_with_content<ID, A, E, G, L>(
-        id: ID,
-        alias: A,
-        expires: E,
-        group: G,
-        location: Option<L>,
-    ) -> Self
-    where
-        ID: Into<x!(i)>,
-        A: Into<x!(i)>,
-        E: Into<x!(i)>,
-        G: Into<GroupOrder>,
-        L: Into<Location>,
-    {
-        Self {
-            request_id: id.into(),
-            track_alias: alias.into(),
-            expires: expires.into(),
-            group_order: group.into(),
-            content_exists: ContentExists::Yes,
-            largest_location: location.map(Into::into),
-            parameters: Default::default(),
-        }
-    }
-
-    pub fn new_no_content<ID, A, E, G>(id: ID, alias: A, expires: E, group: G) -> Self
-    where
-        ID: Into<x!(i)>,
-        A: Into<x!(i)>,
-        E: Into<x!(i)>,
-        G: Into<GroupOrder>,
-    {
-        Self {
-            request_id: id.into(),
-            track_alias: alias.into(),
-            expires: expires.into(),
-            group_order: group.into(),
-            content_exists: ContentExists::No,
-            largest_location: None,
-            parameters: Default::default(),
-        }
-    }
-
-    pub fn expires(&self) -> Duration {
-        Duration::from_millis(self.expires.number())
     }
 }
 
@@ -143,7 +133,12 @@ mod tests {
 
     impl TestData for SubscribeOk {
         fn test_data() -> Vec<(Self, Vec<u8>, usize)> {
-            let v1 = Self::new_no_content(9u8, 13u8, 10u8, GroupOrder::Original);
+            let v1 = Self::builder()
+                .id(9u8)
+                .alias(13u8)
+                .expires(Duration::from_millis(10))
+                .group_order(GroupOrder::Original)
+                .build();
             let b1 = vec![
                 9,  // ID 9
                 13, // track alias 13
@@ -155,8 +150,13 @@ mod tests {
             ];
             let l1 = b1.len() * 8;
 
-            let v2 =
-                Self::new_with_content(1u8, 3u8, 15u8, GroupOrder::Ascending, Some((5u8, 5u8)));
+            let v2 = Self::builder()
+                .id(1u8)
+                .alias(3u8)
+                .expires(Duration::from_millis(15))
+                .group_order(GroupOrder::Ascending)
+                .with_content(5u8, 5u8)
+                .build();
             let b2 = vec![
                 1,  // ID
                 3,  // alias
