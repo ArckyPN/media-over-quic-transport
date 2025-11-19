@@ -11,7 +11,7 @@ use super::ctx;
 /// trait.
 // #[derive(Debug)]
 pub struct ReferenceReader {
-    inner: BytesMut, // TODO use Box<dyn BufMut> instead to be able to dynamically extend it without needing to construct new readers? or better to be able to pass in WebTransport stream directly
+    inner: BytesMut,
     partial: PartialByte,
 }
 
@@ -20,7 +20,7 @@ impl ReferenceReader {
     pub fn new(buf: &[u8]) -> Self {
         Self {
             inner: buf.into(),
-            partial: PartialByte::default(),
+            partial: Default::default(),
         }
     }
 }
