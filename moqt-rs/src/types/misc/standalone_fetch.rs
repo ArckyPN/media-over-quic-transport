@@ -1,6 +1,10 @@
+use bon::Builder;
 use varint::VarInt;
 
-use crate::types::{misc::Location, track};
+use crate::types::{
+    misc::Location,
+    track::{Name, Namespace},
+};
 
 /// ## Standalone Fetch
 ///
@@ -8,44 +12,53 @@ use crate::types::{misc::Location, track};
 /// a specified range.
 ///
 /// [Fetch](crate::types::message::Fetch)
-#[derive(Debug, VarInt, PartialEq, Clone)]
+#[derive(Debug, VarInt, PartialEq, Clone, Builder)]
 pub struct StandaloneFetch {
     /// ## Track Namespace
     ///
     /// The Namespace of the requested Track.
-    pub namespace: track::Namespace,
+    #[builder(into, setters(
+        doc {
+            /// Sets the track namespace on [StandaloneFetch].
+        }
+    ))]
+    pub namespace: Namespace,
 
     /// ## Track Name
     ///
     /// The Name of the requested Track.
-    pub name: track::Name,
+    #[builder(into, setters(
+        doc {
+            /// Sets the track name on [StandaloneFetch].
+        }
+    ))]
+    pub name: Name,
 
     /// ## First Object
     ///
     /// The ID of the Object to start with.
+    #[builder(
+        with = |group: impl Into<varint::x!(i)>, object: impl Into<varint::x!(i)>| (group.into(), object.into()).into(),
+        setters(
+        name = start,
+        doc {
+            /// Sets the start location on [StandaloneFetch].
+        }
+    ))]
     pub start_location: Location,
 
     /// ## Final Object
     ///
     /// The ID of the Object to end with.
-    pub end_location: Location,
-}
-
-impl StandaloneFetch {
-    pub fn new<S, N, LS, LE>(namespace: S, name: N, start: LS, end: LE) -> Self
-    where
-        S: Into<track::Namespace>,
-        N: Into<track::Name>,
-        LS: Into<Location>,
-        LE: Into<Location>,
-    {
-        Self {
-            namespace: namespace.into(),
-            name: name.into(),
-            start_location: start.into(),
-            end_location: end.into(),
+    #[builder(
+        with = |group: impl Into<varint::x!(i)>, object: impl Into<varint::x!(i)>| (group.into(), object.into()).into(),
+        setters(
+        name = end,
+        doc {
+            /// Sets the end location on [StandaloneFetch].
         }
-    }
+    ))]
+    pub end_location: Location,
 }
 
 #[cfg(test)]
@@ -56,7 +69,12 @@ mod tests {
 
     impl TestData for StandaloneFetch {
         fn test_data() -> Vec<(Self, Vec<u8>, usize)> {
-            let v1 = Self::new(["test"], "ok", (1u8, 1u8), (15u8, 10u8));
+            let v1 = Self::builder()
+                .namespace(["test"])
+                .name("ok")
+                .start(1u8, 1u8)
+                .end(15u8, 10u8)
+                .build();
             let b1 = vec![
                 1, // namespace len 1
                 4, // tuple len 4
