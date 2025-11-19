@@ -69,7 +69,7 @@ mod tests {
                     ),
                     (
                         3u8.into(),
-                        Parameter::AuthorizationToken(Token::new_delete(6u8))
+                        Parameter::AuthorizationToken(Token::builder().delete().alias(6u8).build())
                     ),
                     (
                         4u8.into(),
