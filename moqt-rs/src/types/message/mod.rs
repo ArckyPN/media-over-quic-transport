@@ -77,6 +77,8 @@ varint_enum! {
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
     use crate::{
         test_helper::{TestData, varint_struct_test},
         types::{error_code, misc::GroupOrder},
@@ -105,7 +107,7 @@ mod tests {
             .concat();
             let l1 = b1.len() * 8;
 
-            let v2 = Self::ClientSetup(ClientSetup::new(&[1u8, 2u8, 3u8], []));
+            let v2 = Self::ClientSetup(ClientSetup::builder().versions(&[1u8, 2u8, 3u8]).build());
             let b2 = vec![
                 0x20, // Client Setup
                 0,    // payload length
@@ -116,12 +118,14 @@ mod tests {
             ];
             let l2 = b2.len() * 8;
 
-            let v3 = Self::SubscribeOk(SubscribeOk::new_no_content(
-                9u8,
-                13u8,
-                10u8,
-                GroupOrder::Original,
-            ));
+            let v3 = Self::SubscribeOk(
+                SubscribeOk::builder()
+                    .id(9u8)
+                    .alias(13u8)
+                    .expires(Duration::from_millis(10))
+                    .group_order(GroupOrder::Original)
+                    .build(),
+            );
             let b3 = vec![
                 0x4, // Subscribe Ok
                 0,   // payload length

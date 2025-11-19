@@ -295,7 +295,7 @@ mod tests {
                 .id(9u8)
                 .sub_prio(13)
                 .group_order(GroupOrder::Ascending)
-                .auth_token(Token::new_delete(7u8))
+                .auth_token(Token::builder().delete().alias(7u8).build())
                 .build(JoiningFetch::builder().id(10u8).start(5u8).build());
             let b2 = vec![
                 9,  // ID 9
@@ -316,7 +316,7 @@ mod tests {
             let v3 = Self::with_absolute_joining()
                 .id(33u8)
                 .sub_prio(0)
-                .auth_token(Token::new_delete(7u8))
+                .auth_token(Token::builder().delete().alias(7u8).build())
                 .number(10u8, 21u8)
                 .group_order(GroupOrder::Original)
                 .build(JoiningFetch::builder().id(44u8).start(1u16).build());
