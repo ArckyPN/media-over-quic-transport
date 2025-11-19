@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use convert_case::Casing;
+use convert_case::{Case, Casing};
 use darling::FromAttributes;
 use proc_macro_error2::abort_call_site;
 use proc_macro2::TokenStream;
@@ -55,6 +55,8 @@ pub mod general {
 #[darling(attributes(varint))]
 pub struct StructAttrs {
     parameters: Option<general::Parameters>,
+    #[darling(multiple)]
+    builders: Vec<Ident>,
     // TODO add and_then: Option<Path> (a fn to call after decode to validate the result)
 }
 
@@ -125,11 +127,17 @@ impl StructAttrs {
             })
             .collect::<Vec<_>>();
 
-        let builder_mod = format_ident!(
-            "{}_builder",
-            name.to_string().to_case(convert_case::Case::Snake)
-        );
-        let builder_struct = format_ident!("{name}Builder");
+        let builders = if self.builders.is_empty() {
+            vec![(format_ident!(
+                "{}_builder",
+                name.to_string().to_case(convert_case::Case::Snake)
+            ), format_ident!("{name}Builder"))]
+        } else {
+            self.builders
+                .iter()
+                .map(|b| (format_ident!("{}_{b}_builder", name.to_string().to_case(Case::Lower)), format_ident!("{name}{}Builder", b.to_string().to_case(Case::UpperCamel))))
+                .collect()
+        };
         let param_enum = format_ident!("{prefix}Parameter");
 
         let setters = parameter_map
@@ -159,36 +167,37 @@ impl StructAttrs {
             })
             .collect::<Vec<_>>();
 
-        let setters = quote! {
-            impl<S: #builder_mod::State> #builder_struct<S> {
-                // TODO add specific
-                #(
-                    #setters
-                )*
-
-                /// Adds a generic number parameter.
-                fn number<K, V>(mut self, key: K, value: V) -> Self
-                where
-                    K: Into<#varint::x!(i)>,
-                    V: Into<#varint::x!(i)>,
-                {
-                    self.parameters
-                        .insert(key.into(), crate::types::parameter::#param_enum::Number(value.into()));
-                    self
+        let setters = builders.iter().map(|(bm, bs)|
+            quote! {
+                impl<S: #bm::State> #bs<S> {
+                    // TODO add specific
+                    #(
+                        #setters
+                    )*
+    
+                    /// Adds a generic number parameter.
+                    fn number<K, V>(mut self, key: K, value: V) -> Self
+                    where
+                        K: Into<#varint::x!(i)>,
+                        V: Into<#varint::x!(i)>,
+                    {
+                        self.parameters
+                            .insert(key.into(), crate::types::parameter::#param_enum::Number(value.into()));
+                        self
+                    }
+    
+                    /// Adds a generic bytes parameter.
+                    fn bytes<K, V>(mut self, key: K, value: V) -> Self
+                    where
+                        K: Into<#varint::x!(i)>,
+                        V: Into<#varint::x!(..)>,
+                    {
+                        self.parameters
+                            .insert(key.into(), crate::types::parameter::#param_enum::Bytes(value.into()));
+                        self
+                    }
                 }
-
-                /// Adds a generic bytes parameter.
-                fn bytes<K, V>(mut self, key: K, value: V) -> Self
-                where
-                    K: Into<#varint::x!(i)>,
-                    V: Into<#varint::x!(..)>,
-                {
-                    self.parameters
-                        .insert(key.into(), crate::types::parameter::#param_enum::Bytes(value.into()));
-                    self
-                }
-            }
-        };
+            });
 
         quote! {
             impl #name {
@@ -211,7 +220,7 @@ impl StructAttrs {
                 }
             }
 
-            #setters
+            #(#setters)*
         }
     }
 
