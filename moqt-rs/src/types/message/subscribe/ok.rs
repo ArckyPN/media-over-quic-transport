@@ -61,17 +61,25 @@ pub struct SubscribeOk {
     pub parameters: Parameters,
 }
 
-impl<S: subscribe_ok_builder::State> SubscribeOkBuilder<S> {
+use subscribe_ok_builder::{IsUnset, SetContentExists, SetLargestLocation, State};
+impl<S: State> SubscribeOkBuilder<S>
+where
+    S::ContentExists: IsUnset,
+    S::LargestLocation: IsUnset,
+{
     /// Optional setter for [`content_exists`](SubscribeOk::content_exists) and
     /// [`largest_location`](SubscribeOk::largest_location) on [SubscribeOk].
-    pub fn with_content<G, O>(mut self, group: G, object: O) -> Self
+    pub fn with_content<G, O>(
+        mut self,
+        group: G,
+        object: O,
+    ) -> SubscribeOkBuilder<SetContentExists<SetLargestLocation<S>>>
     where
         G: Into<x!(i)>,
         O: Into<x!(i)>,
     {
-        self.content_exists = ContentExists::Yes;
-        self.largest_location = Some((group.into(), object.into()).into());
-        self
+        let this = self.largest_location_internal(Some((group.into(), object.into()).into()));
+        this.content_exists_internal(ContentExists::Yes)
     }
 }
 
@@ -81,8 +89,6 @@ impl SubscribeOk {
     #[builder]
     pub fn new(
         #[builder(field)] parameters: Parameters,
-        #[builder(field)] content_exists: ContentExists,
-        #[builder(field)] largest_location: x!([Location]),
 
         #[builder(into, setters(
             name = id,
@@ -112,6 +118,12 @@ impl SubscribeOk {
             }
         ))]
         group_order: GroupOrder,
+
+        #[builder(default, setters(vis = "", name = content_exists_internal))]
+        content_exists: ContentExists,
+        #[builder(default, setters(vis = "", name = largest_location_internal))] largest_location: x!(
+            [Location]
+        ),
     ) -> Self {
         Self {
             request_id,

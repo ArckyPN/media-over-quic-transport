@@ -19,11 +19,7 @@ use {
 /// Initiates the publishing of a new Track.
 #[derive(Debug, VarInt, PartialEq, Clone)]
 #[varint::draft_ref(v = 14)]
-#[varint(
-    parameters(auth_token, max_cache_duration),
-    builder = with_content,
-    builder = without_content,
-)]
+#[varint(parameters(auth_token, max_cache_duration))]
 pub struct Publish {
     /// ## Request ID
     pub request_id: x!(i),
@@ -88,10 +84,30 @@ pub struct Publish {
     pub parameters: Parameters,
 }
 
+use publish_builder::{IsUnset, SetContentExists, SetLargestLocation, State};
+impl<S: State> PublishBuilder<S>
+where
+    S::ContentExists: IsUnset,
+    S::LargestLocation: IsUnset,
+{
+    pub fn with_content<G, O>(
+        self,
+        group: G,
+        object: O,
+    ) -> PublishBuilder<SetContentExists<SetLargestLocation<S>>>
+    where
+        G: Into<x!(i)>,
+        O: Into<x!(i)>,
+    {
+        let this = self.largest_location_internal(Some((group.into(), object.into()).into()));
+        this.content_exists_internal(ContentExists::Yes)
+    }
+}
+
 #[bon]
 impl Publish {
     #[builder(finish_fn = build)]
-    pub fn with_content(
+    pub fn new(
         #[builder(field)] parameters: Parameters,
 
         #[builder(into, setters(
@@ -130,14 +146,12 @@ impl Publish {
         ))]
         group_order: GroupOrder,
 
-        #[builder(
-            with = |group: impl Into<varint::x!(i)>, object: impl Into<varint::x!(i)>| (group.into(), object.into()).into(),
-            setters(
-            doc {
-                /// Sets the end location on [Publish].
-            }
-        ))]
-        largest_location: Location,
+        #[builder(default, setters(vis = "", name = content_exists_internal))]
+        content_exists: ContentExists,
+
+        #[builder(default, setters(vis = "", name = largest_location_internal))] largest_location: x!(
+            [Location]
+        ),
 
         #[builder(into, setters(
             doc {
@@ -152,68 +166,8 @@ impl Publish {
             name,
             alias,
             group_order,
-            content_exists: ContentExists::Yes,
-            largest_location: Some(largest_location),
-            forward,
-            parameters,
-        }
-    }
-
-    #[builder(finish_fn = build)]
-    pub fn without_content(
-        #[builder(field)] parameters: Parameters,
-
-        #[builder(into, setters(
-            name = id,
-            doc {
-                /// Sets the request ID on [Publish].
-            }
-        ))]
-        request_id: x!(i),
-
-        #[builder(into, setters(
-            doc {
-                /// Sets the track namespace on [Publish].
-            }
-        ))]
-        namespace: Namespace,
-
-        #[builder(into, setters(
-            doc {
-                /// Sets the track name on [Publish].
-            }
-        ))]
-        name: Name,
-
-        #[builder(into, setters(
-            doc {
-                /// Sets the session alias on [Publish].
-            }
-        ))]
-        alias: x!(i),
-
-        #[builder(setters(
-            doc {
-                /// Sets the group order on [Publish].
-            }
-        ))]
-        group_order: GroupOrder,
-
-        #[builder(into, setters(
-            doc {
-                /// Sets the forwarding on [Publish].
-            }
-        ))]
-        forward: Forward,
-    ) -> Self {
-        Self {
-            request_id,
-            namespace,
-            name,
-            alias,
-            group_order,
-            content_exists: ContentExists::No,
-            largest_location: None,
+            content_exists,
+            largest_location,
             forward,
             parameters,
         }
@@ -228,7 +182,7 @@ mod tests {
 
     impl TestData for Publish {
         fn test_data() -> Vec<(Self, Vec<u8>, usize)> {
-            let v1 = Self::without_content()
+            let v1 = Self::builder()
                 .id(9u8)
                 .namespace(["moq"])
                 .name("vod")
@@ -252,13 +206,13 @@ mod tests {
             ];
             let l1 = b1.len() * 8;
 
-            let v2 = Self::with_content()
+            let v2 = Self::builder()
                 .id(9u8)
                 .namespace(["moq"])
                 .name("vod")
                 .alias(5u8)
                 .group_order(GroupOrder::Original)
-                .largest_location(43u8, 15u8)
+                .with_content(43u8, 15u8)
                 .forward(true)
                 .build();
             let b2 = vec![

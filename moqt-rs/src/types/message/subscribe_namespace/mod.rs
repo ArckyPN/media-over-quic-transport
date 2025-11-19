@@ -40,16 +40,17 @@ impl SubscribeNamespace {
     #[builder]
     pub fn new(
         #[builder(field)] parameters: Parameters,
+
         #[builder(into, setters(
             name = id,
             doc {
-                /// TODO docs
+                /// Sets the request ID on [SubscribeNamespace].
             }
         ))]
         request_id: x!(i),
         #[builder(into, setters(
             doc {
-                /// TODO docs
+                /// Sets the track namespace prefix on [SubscribeNamespace].
             }
         ))]
         namespace_prefix: Namespace,
