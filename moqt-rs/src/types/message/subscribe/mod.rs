@@ -171,18 +171,16 @@ where
         this.filter_type_internal(FilterType::AbsoluteStart)
     }
 
-    pub fn with_absolute_range<G, O, E>(
+    pub fn with_absolute_range<L, E>(
         self,
-        group: G,
-        object: O,
+        start: L,
         end_group: E,
     ) -> SubscribeBuilder<SetFilterType<SetEndGroup<SetStartLocation<S>>>>
     where
-        G: Into<x!(i)>,
-        O: Into<x!(i)>,
+        L: Into<Location>,
         E: Into<x!(i)>,
     {
-        let this = self.start_location_internal(Some((group.into(), object.into()).into()));
+        let this = self.start_location_internal(Some(start.into()));
         let this = this.end_group_internal(Some(end_group.into()));
         this.filter_type_internal(FilterType::AbsoluteStart)
     }
