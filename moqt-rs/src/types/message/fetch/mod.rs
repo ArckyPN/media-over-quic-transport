@@ -47,9 +47,9 @@ use {
 #[varint::draft_ref(v = 14)]
 #[varint(
     parameters(auth_token),
-    builders = with_relative_joining,
-    builders = with_standalone,
-    builders = with_absolute_joining,
+    builder = with_relative_joining,
+    builder = with_standalone,
+    builder = with_absolute_joining,
 )]
 pub struct Fetch {
     /// ## Request ID

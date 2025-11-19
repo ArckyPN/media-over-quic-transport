@@ -56,7 +56,7 @@ pub mod general {
 pub struct StructAttrs {
     parameters: Option<general::Parameters>,
     #[darling(multiple)]
-    builders: Vec<Ident>,
+    builder: Vec<Ident>,
     // TODO add and_then: Option<Path> (a fn to call after decode to validate the result)
 }
 
@@ -127,13 +127,13 @@ impl StructAttrs {
             })
             .collect::<Vec<_>>();
 
-        let builders = if self.builders.is_empty() {
+        let builders = if self.builder.is_empty() {
             vec![(format_ident!(
                 "{}_builder",
                 name.to_string().to_case(convert_case::Case::Snake)
             ), format_ident!("{name}Builder"))]
         } else {
-            self.builders
+            self.builder
                 .iter()
                 .map(|b| (format_ident!("{}_{b}_builder", name.to_string().to_case(Case::Lower)), format_ident!("{name}{}Builder", b.to_string().to_case(Case::UpperCamel))))
                 .collect()
