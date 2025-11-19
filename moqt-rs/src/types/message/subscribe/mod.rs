@@ -51,13 +51,7 @@ use {
 /// specified range of Objects.
 #[derive(Debug, VarInt, PartialEq, Clone)]
 #[varint::draft_ref(v = 14)]
-#[varint(
-    parameters(auth_token, delivery_timeout),
-    builder = with_next_group_start,
-    builder = with_largest_object,
-    builder = with_absolute_start,
-    builder = with_absolute_range,
-)]
+#[varint(parameters(auth_token, delivery_timeout))]
 pub struct Subscribe {
     /// ## Request ID
     pub request_id: x!(i),
@@ -140,12 +134,70 @@ pub struct Subscribe {
     pub parameters: Parameters,
 }
 
+use subscribe_builder::{IsUnset, SetEndGroup, SetFilterType, SetStartLocation, State};
+impl<S: State> SubscribeBuilder<S>
+where
+    S::FilterType: IsUnset,
+    S::StartLocation: IsUnset,
+    S::EndGroup: IsUnset,
+{
+    pub fn with_next_group_start(
+        mut self,
+    ) -> SubscribeBuilder<SetFilterType<SetEndGroup<SetStartLocation<S>>>> {
+        let this = self.start_location_internal(None);
+        let this = this.end_group_internal(None);
+        this.filter_type_internal(FilterType::NextGroupStart)
+    }
+
+    pub fn with_largest_object(
+        mut self,
+    ) -> SubscribeBuilder<SetFilterType<SetEndGroup<SetStartLocation<S>>>> {
+        let this = self.start_location_internal(None);
+        let this = this.end_group_internal(None);
+        this.filter_type_internal(FilterType::LargestObject)
+    }
+
+    pub fn with_absolute_start<G, O>(
+        mut self,
+        group: G,
+        object: O,
+    ) -> SubscribeBuilder<SetFilterType<SetEndGroup<SetStartLocation<S>>>>
+    where
+        G: Into<x!(i)>,
+        O: Into<x!(i)>,
+    {
+        let this = self.start_location_internal(Some((group.into(), object.into()).into()));
+        let this = this.end_group_internal(None);
+        this.filter_type_internal(FilterType::AbsoluteStart)
+    }
+
+    pub fn with_absolute_range<G, O, E>(
+        mut self,
+        group: G,
+        object: O,
+        end_group: E,
+    ) -> SubscribeBuilder<SetFilterType<SetEndGroup<SetStartLocation<S>>>>
+    where
+        G: Into<x!(i)>,
+        O: Into<x!(i)>,
+        E: Into<x!(i)>,
+    {
+        let this = self.start_location_internal(Some((group.into(), object.into()).into()));
+        let this = this.end_group_internal(Some(end_group.into()));
+        this.filter_type_internal(FilterType::AbsoluteStart)
+    }
+}
+
 #[bon]
 impl Subscribe {
-    /// Creates a builder for [Subscribe] with [FilterType::NextGroupStart].
-    #[builder(finish_fn = build)]
-    pub fn with_next_group_start(
+    #[builder]
+    pub fn new(
         #[builder(field)] parameters: Parameters,
+        #[builder(setters(vis = "", name = filter_type_internal))] filter_type: FilterType,
+        #[builder(setters(vis = "", name = start_location_internal))] start_location: x!([
+            Location
+        ]),
+        #[builder(setters(vis = "", name = end_group_internal))] end_group: x!([i]),
 
         #[builder(into, setters(
             name = id,
@@ -200,231 +252,9 @@ impl Subscribe {
             subscriber_priority,
             group_order,
             forward,
-            filter_type: FilterType::NextGroupStart,
-            start_location: None,
-            end_group: None,
-            parameters,
-        }
-    }
-
-    /// Creates a builder for [Subscribe] with [FilterType::LargestObject].
-    #[builder(finish_fn = build)]
-    pub fn with_largest_object(
-        #[builder(field)] parameters: Parameters,
-
-        #[builder(into, setters(
-            name = id,
-            doc {
-                /// Sets the request ID on [Subscribe].
-            }
-        ))]
-        request_id: x!(i),
-
-        #[builder(into, setters(
-            doc {
-                /// Sets the track namespace on [Subscribe].
-            }
-        ))]
-        namespace: Namespace,
-
-        #[builder(into, setters(
-            doc {
-                /// Sets the track name on [Subscribe].
-            }
-        ))]
-        name: Name,
-
-        #[builder(
-            name = sub_prio,
-            with = |p: u8| <x!(8)>::try_from(p).expect("u8 will fit into 8 bits"), 
-            setters(
-                doc {
-                    /// Sets the subscriber priority on [Subscribe].
-                }
-        ))]
-        subscriber_priority: x!(8),
-
-        #[builder(setters(
-            doc {
-                /// Sets the group order on [Subscribe].
-            }
-        ))]
-        group_order: GroupOrder,
-
-        #[builder(into, setters(
-            doc {
-                /// Sets the forwarding on [Subscribe].
-            }
-        ))]
-        forward: Forward,
-    ) -> Self {
-        Self {
-            request_id,
-            namespace,
-            name,
-            subscriber_priority,
-            group_order,
-            forward,
-            filter_type: FilterType::LargestObject,
-            start_location: None,
-            end_group: None,
-            parameters,
-        }
-    }
-
-    /// Creates a builder for [Subscribe] with [FilterType::AbsoluteStart].
-    #[builder(finish_fn = build)]
-    pub fn with_absolute_start(
-        #[builder(field)] parameters: Parameters,
-
-        #[builder(into, setters(
-            name = id,
-            doc {
-                /// Sets the request ID on [Subscribe].
-            }
-        ))]
-        request_id: x!(i),
-
-        #[builder(into, setters(
-            doc {
-                /// Sets the track namespace on [Subscribe].
-            }
-        ))]
-        namespace: Namespace,
-
-        #[builder(into, setters(
-            doc {
-                /// Sets the track name on [Subscribe].
-            }
-        ))]
-        name: Name,
-
-        #[builder(
-            name = sub_prio,
-            with = |p: u8| <x!(8)>::try_from(p).expect("u8 will fit into 8 bits"), 
-            setters(
-                doc {
-                    /// Sets the subscriber priority on [Subscribe].
-                }
-        ))]
-        subscriber_priority: x!(8),
-
-        #[builder(setters(
-            doc {
-                /// Sets the group order on [Subscribe].
-            }
-        ))]
-        group_order: GroupOrder,
-
-        #[builder(into, setters(
-            doc {
-                /// Sets the forwarding on [Subscribe].
-            }
-        ))]
-        forward: Forward,
-
-        #[builder(
-            with = |group: impl Into<varint::x!(i)>, object: impl Into<varint::x!(i)>| (group.into(), object.into()).into(),
-            setters(
-            name = start,
-            doc {
-                /// Sets the start location on [Subscribe].
-            }
-        ))]
-        start_location: Location,
-    ) -> Self {
-        Self {
-            request_id,
-            namespace,
-            name,
-            subscriber_priority,
-            group_order,
-            forward,
-            filter_type: FilterType::AbsoluteStart,
-            start_location: Some(start_location),
-            end_group: None,
-            parameters,
-        }
-    }
-
-    /// Creates a builder for [Subscribe] with [FilterType::AbsoluteRange].
-    #[builder(finish_fn = build)]
-    pub fn with_absolute_range(
-        #[builder(field)] parameters: Parameters,
-
-        #[builder(into, setters(
-            name = id,
-            doc {
-                /// Sets the request ID on [Subscribe].
-            }
-        ))]
-        request_id: x!(i),
-
-        #[builder(into, setters(
-            doc {
-                /// Sets the track namespace on [Subscribe].
-            }
-        ))]
-        namespace: Namespace,
-
-        #[builder(into, setters(
-            doc {
-                /// Sets the track name on [Subscribe].
-            }
-        ))]
-        name: Name,
-
-        #[builder(
-            name = sub_prio,
-            with = |p: u8| <x!(8)>::try_from(p).expect("u8 will fit into 8 bits"), 
-            setters(
-                doc {
-                    /// Sets the subscriber priority on [Subscribe].
-                }
-        ))]
-        subscriber_priority: x!(8),
-
-        #[builder(setters(
-            doc {
-                /// Sets the group order on [Subscribe].
-            }
-        ))]
-        group_order: GroupOrder,
-
-        #[builder(into, setters(
-            doc {
-                /// Sets the forwarding on [Subscribe].
-            }
-        ))]
-        forward: Forward,
-
-        #[builder(
-            with = |group: impl Into<varint::x!(i)>, object: impl Into<varint::x!(i)>| (group.into(), object.into()).into(),
-            setters(
-            name = start,
-            doc {
-                /// Sets the start location on [Subscribe].
-            }
-        ))]
-        start_location: Location,
-
-        #[builder(into, setters(
-            doc {
-                /// Sets the end group on [Subscribe].
-            }
-        ))]
-        end_group: x!(i),
-    ) -> Self {
-        Self {
-            request_id,
-            namespace,
-            name,
-            subscriber_priority,
-            group_order,
-            forward,
-            filter_type: FilterType::AbsoluteRange,
-            start_location: Some(start_location),
-            end_group: Some(end_group),
+            filter_type,
+            start_location,
+            end_group,
             parameters,
         }
     }
@@ -438,14 +268,14 @@ mod tests {
 
     impl TestData for Subscribe {
         fn test_data() -> Vec<(Self, Vec<u8>, usize)> {
-            let v1 = Self::with_absolute_start()
+            let v1 = Self::builder()
                 .id(15u8)
                 .namespace(["num", "boom"])
                 .name("bob")
                 .sub_prio(50)
                 .group_order(GroupOrder::Original)
                 .forward(true)
-                .start(5u8, 1u8)
+                .with_absolute_start(5u8, 1u8)
                 .build();
             let b1 = [
                 vec![
