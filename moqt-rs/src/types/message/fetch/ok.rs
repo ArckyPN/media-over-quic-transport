@@ -54,26 +54,34 @@ impl FetchOk {
     #[builder]
     pub fn new(
         #[builder(field)] parameters: Parameters,
+
         #[builder(into, setters(
             name = id,
             doc {
-                /// TODO docs
+                /// Sets the request ID on [FetchOk].
             }
         ))]
         request_id: x!(i),
-        #[builder(setters(doc {
-            /// TODO docs
-        }))]
+
+        #[builder(setters(
+            doc {
+                /// Sets the group order on [FetchOk].
+            }
+        ))]
         group_order: GroupOrder,
+
         #[builder(into, setters(
             doc {
-                /// TODO docs
+                /// Sets end of track on [FetchOk].
             }
         ))]
         end_of_track: EndOfTrack,
-        #[builder(into, setters(
+
+        #[builder(
+            with = |group: impl Into<varint::x!(i)>, object: impl Into<varint::x!(i)>| (group.into(), object.into()).into(),
+            setters(
             doc {
-                /// TODO docs
+                /// Sets the end location on [FetchOk].
             }
         ))]
         end_location: Location,
@@ -100,7 +108,7 @@ mod tests {
                 .id(4u8)
                 .group_order(GroupOrder::Original)
                 .end_of_track(true)
-                .end_location((54u8, 3u8))
+                .end_location(54u8, 3u8)
                 .build();
             let b1 = vec![
                 4,  // ID
