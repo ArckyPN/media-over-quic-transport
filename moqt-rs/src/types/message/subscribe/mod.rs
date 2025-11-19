@@ -142,7 +142,7 @@ where
     S::EndGroup: IsUnset,
 {
     pub fn with_next_group_start(
-        mut self,
+        self,
     ) -> SubscribeBuilder<SetFilterType<SetEndGroup<SetStartLocation<S>>>> {
         let this = self.start_location_internal(None);
         let this = this.end_group_internal(None);
@@ -150,7 +150,7 @@ where
     }
 
     pub fn with_largest_object(
-        mut self,
+        self,
     ) -> SubscribeBuilder<SetFilterType<SetEndGroup<SetStartLocation<S>>>> {
         let this = self.start_location_internal(None);
         let this = this.end_group_internal(None);
@@ -158,7 +158,7 @@ where
     }
 
     pub fn with_absolute_start<G, O>(
-        mut self,
+        self,
         group: G,
         object: O,
     ) -> SubscribeBuilder<SetFilterType<SetEndGroup<SetStartLocation<S>>>>
@@ -172,7 +172,7 @@ where
     }
 
     pub fn with_absolute_range<G, O, E>(
-        mut self,
+        self,
         group: G,
         object: O,
         end_group: E,
