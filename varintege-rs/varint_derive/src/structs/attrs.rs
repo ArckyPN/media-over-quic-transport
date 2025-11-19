@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use convert_case::{Case, Casing};
 use darling::FromAttributes;
 use proc_macro_error2::abort_call_site;
 use proc_macro2::TokenStream;
@@ -55,8 +54,6 @@ pub mod general {
 #[darling(attributes(varint))]
 pub struct StructAttrs {
     parameters: Option<general::Parameters>,
-    #[darling(multiple)]
-    builder: Vec<Ident>,
     // TODO add and_then: Option<Path> (a fn to call after decode to validate the result)
 }
 
@@ -127,78 +124,6 @@ impl StructAttrs {
             })
             .collect::<Vec<_>>();
 
-        let builders = if self.builder.is_empty() {
-            vec![(format_ident!(
-                "{}_builder",
-                name.to_string().to_case(convert_case::Case::Snake)
-            ), format_ident!("{name}Builder"))]
-        } else {
-            self.builder
-                .iter()
-                .map(|b| (format_ident!("{}_{b}_builder", name.to_string().to_case(Case::Lower)), format_ident!("{name}{}Builder", b.to_string().to_case(Case::UpperCamel))))
-                .collect()
-        };
-        let param_enum = format_ident!("{prefix}Parameter");
-
-        let setters = parameter_map
-            .iter()
-            .map(|(k, (v, docs, variant, ty))| {
-                let fn_name =
-                    format_ident!("{k}" /* variant.to_case(convert_case::Case::Snake) */,);
-                let docs = docs.iter().map(|d| syn::parse_str::<Meta>(d).unwrap());
-                let ty: Path = syn::parse_str(ty).expect("won't fail");
-                let variant = format_ident!("{variant}");
-
-                quote! {
-                    #(
-                        #[#docs]
-                    )*
-                    fn #fn_name<V>(mut self, value: V) -> Self
-                    where
-                        V: Into<#ty>
-                    {
-                        self.parameters.insert(
-                            <#varint::x!(i)>::from(#v as u32),
-                            crate::types::parameter::#param_enum::#variant(value.into())
-                        );
-                        self
-                    }
-                }
-            })
-            .collect::<Vec<_>>();
-
-        let setters = builders.iter().map(|(bm, bs)|
-            quote! {
-                impl<S: #bm::State> #bs<S> {
-                    // TODO add specific
-                    #(
-                        #setters
-                    )*
-    
-                    /// Adds a generic number parameter.
-                    fn number<K, V>(mut self, key: K, value: V) -> Self
-                    where
-                        K: Into<#varint::x!(i)>,
-                        V: Into<#varint::x!(i)>,
-                    {
-                        self.parameters
-                            .insert(key.into(), crate::types::parameter::#param_enum::Number(value.into()));
-                        self
-                    }
-    
-                    /// Adds a generic bytes parameter.
-                    fn bytes<K, V>(mut self, key: K, value: V) -> Self
-                    where
-                        K: Into<#varint::x!(i)>,
-                        V: Into<#varint::x!(..)>,
-                    {
-                        self.parameters
-                            .insert(key.into(), crate::types::parameter::#param_enum::Bytes(value.into()));
-                        self
-                    }
-                }
-            });
-
         quote! {
             impl #name {
                 #( #fns )*
@@ -219,8 +144,6 @@ impl StructAttrs {
                     self.parameters.get_mut(&key)
                 }
             }
-
-            #(#setters)*
         }
     }
 
