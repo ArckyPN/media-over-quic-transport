@@ -40,19 +40,22 @@ pub struct PublishNamespace {
 
 #[bon]
 impl PublishNamespace {
+    /// Creates a new Builder for [PublishNamespace].
     #[builder]
     pub fn new(
         #[builder(field)] parameters: Parameters,
+
         #[builder(into, setters(
             name = id,
             doc {
-                /// TODO docs
+                /// Sets the request ID on [PublishNamespace].
             }
         ))]
         request_id: x!(i),
+
         #[builder(into, setters(
             doc {
-                /// TODO docs
+                /// Sets the track namespace on [PublishNamespace].
             }
         ))]
         namespace: Namespace,
