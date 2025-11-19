@@ -20,6 +20,12 @@ varint_enum! {
     }
 }
 
+impl From<bool> for Forward {
+    fn from(value: bool) -> Self {
+        if value { Self::Enabled } else { Self::Disabled }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::test_helper::varint_enum_test;
