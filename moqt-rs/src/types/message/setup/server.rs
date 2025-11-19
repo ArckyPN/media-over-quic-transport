@@ -21,10 +21,11 @@ impl ServerSetup {
     #[builder]
     pub fn new(
         #[builder(field)] parameters: ServerSetupParameters,
+
         #[builder(into, setters(
         name = version,
         doc {
-            /// TODO docs
+            /// Sets the selected version on [ServerSetup].
         }
     ))]
         selected_version: x!(i),

@@ -22,7 +22,7 @@ pub struct ClientSetup {
 }
 
 impl<S: client_setup_builder::State> ClientSetupBuilder<S> {
-    /// Adds a supported Version to [ClientSetup]
+    /// Adds a supported Version to [ClientSetup].
     pub fn version<V>(mut self, v: V) -> Self
     where
         V: Into<x!(i)>,
@@ -31,7 +31,7 @@ impl<S: client_setup_builder::State> ClientSetupBuilder<S> {
         self
     }
 
-    /// Adds supported Versions from an Iterator to [ClientSetup]
+    /// Adds supported Versions from an Iterator to [ClientSetup].
     pub fn versions<I, T>(mut self, versions: I) -> Self
     where
         I: IntoIterator<Item = T>,
