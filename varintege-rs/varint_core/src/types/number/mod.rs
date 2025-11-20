@@ -65,6 +65,19 @@ impl Number {
         this.set_number(v, None).expect("value will fit");
         this
     }
+
+    /// Creates a new VarInt from any unsigned Number.
+    ///
+    /// Panics if `v` is larger than `(2 << 61) - 1` = `4_611_686_018_427_387_903`.
+    pub fn new_unchecked<U>(v: U) -> Self
+    where
+        U: Unsigned,
+    {
+        let mut this = Self::default();
+        this.set_number(v, None)
+            .expect("number exceeded VarInt limit");
+        this
+    }
 }
 
 impl Display for Number {
