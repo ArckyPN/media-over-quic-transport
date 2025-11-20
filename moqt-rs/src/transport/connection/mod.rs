@@ -5,7 +5,7 @@ pub use error::ConnectionError;
 use snafu::ResultExt;
 
 use {
-    super::{ControlStream, RecvStream, SendStream},
+    super::{RecvStream, SendStream},
     error::ctx,
 };
 
@@ -23,22 +23,6 @@ impl Connection {
     /// If not then WebTransport is used.
     pub fn is_quic(&self) -> bool {
         matches!(self, Self::Quic(_))
-    }
-
-    #[tracing::instrument(skip(self), err)]
-    pub async fn handshake(&self) -> Result<ControlStream, ConnectionError> {
-        match self {
-            Self::Quic(conn) => {}
-            Self::WebTransport(conn) => {
-                let cs = conn
-                    .open_bi()
-                    .await
-                    .context(ctx::WebTransportConnectionSnafu)?
-                    .await
-                    .context(ctx::WebTransportOpeningStreamSnafu)?;
-            }
-        }
-        todo!()
     }
 
     /// Open an outgoing unidirectional Stream

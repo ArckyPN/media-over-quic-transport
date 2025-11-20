@@ -2,7 +2,6 @@
 //! types to have a unified API to use either of them.
 
 mod connection;
-mod control_stream;
 mod endpoint;
 mod recv_stream;
 mod send_stream;
@@ -16,13 +15,19 @@ pub mod quic {
     pub use quic::{ClientConfig, ServerConfig};
 }
 
+pub mod error {
+    pub use super::{
+        connection::ConnectionError,
+        endpoint::EndpointError,
+        recv_stream::{DecodeError, RecvError},
+        send_stream::SendError,
+    };
+}
+
 pub(crate) use {
-    connection::{Connection, ConnectionError},
-    control_stream::ControlStream,
-    endpoint::{Endpoint, EndpointError},
-    recv_stream::RecvStream,
-    send_stream::SendStream,
+    connection::Connection, endpoint::Endpoint, recv_stream::RecvStream, send_stream::SendStream,
 };
 
 const WEBTRANSPORT: &str = "WebTransport";
 const QUIC: &str = "QUIC";
+const PACKET_SIZE: usize = (1 << 16) - 1;

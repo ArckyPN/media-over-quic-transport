@@ -3,7 +3,7 @@ mod error;
 
 pub use error::EndpointError;
 use snafu::ResultExt;
-use tracing::{info, trace};
+use tracing::{debug, info, trace};
 
 use crate::transport::{QUIC, WEBTRANSPORT};
 
@@ -47,7 +47,7 @@ impl Endpoint {
                 };
 
                 tracing::Span::current()
-                    .record("remote_addr", &connection.remote_address().to_string());
+                    .record("remote_addr", connection.remote_address().to_string());
                 info!("new session accepted");
 
                 Ok(Connection::Quic(connection))
@@ -61,16 +61,14 @@ impl Endpoint {
                     .context(ctx::WebTransportConnectionSnafu)?;
                 trace!("receiving requests");
 
-                tracing::Span::current().record(
-                    "remote_addr",
-                    &incoming_request.remote_address().to_string(),
-                );
+                tracing::Span::current()
+                    .record("remote_addr", incoming_request.remote_address().to_string());
 
                 let connection = incoming_request
                     .accept()
                     .await
                     .context(ctx::WebTransportConnectionSnafu)?;
-                info!("new session accepted");
+                debug!("new session accepted");
 
                 Ok(Connection::WebTransport(connection))
             }

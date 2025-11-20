@@ -722,6 +722,7 @@ version = "0.0.1"
 dependencies = [
  "bon",
  "clap",
+ "funty",
  "indexmap",
  "paste",
  "pretty_assertions",

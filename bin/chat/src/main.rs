@@ -1,6 +1,6 @@
 use {
     clap::Parser,
-    moqt::PublisherConfig,
+    moqt::ClientConfig,
     snafu::{ResultExt, Whatever},
     std::path::PathBuf,
     tracing::Level,
@@ -14,7 +14,7 @@ struct Cli {
     log_level: Level,
 
     #[command(flatten)]
-    config: PublisherConfig,
+    config: ClientConfig,
 }
 
 #[tokio::main]
@@ -29,7 +29,7 @@ async fn main() -> Result<(), Whatever> {
     )
     .expect("setting tracing default failed");
 
-    let publisher = moqt::Publisher::new(cli.config)
+    let publisher = moqt::Client::new(cli.config)
         .await
         .whatever_context("failed to build publisher")?;
 
