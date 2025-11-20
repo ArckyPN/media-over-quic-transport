@@ -1,5 +1,5 @@
 use {
-    super::{Endpoint, Relay, RelayConfig, RelayError, ctx},
+    super::{Endpoint, Server, ServerConfig, ServerError, ctx},
     crate::Protocol,
     bon::bon,
     core::net::SocketAddr,
@@ -8,10 +8,10 @@ use {
 };
 
 #[bon]
-impl Relay {
-    /// Create a [Relay] using a [RelayConfig]
+impl Server {
+    /// Create a [Server] using a [ServerConfig]
     #[tracing::instrument]
-    pub async fn new(config: RelayConfig) -> Result<Self, RelayError> {
+    pub async fn new(config: ServerConfig) -> Result<Self, ServerError> {
         match &config.protocol {
             Protocol::Quic => {
                 Self::quic_builder()
@@ -32,7 +32,7 @@ impl Relay {
         }
     }
 
-    /// Create a WebTransport [Relay] using a Builder pattern
+    /// Create a WebTransport [Server] using a Builder pattern
     #[builder(start_fn = webtransport_builder, finish_fn = build)]
     pub async fn new_webtransport<C, K>(
         #[builder(into, setters(doc {
@@ -54,7 +54,7 @@ impl Relay {
             /// The Path to the key file.
         }))]
         key: K,
-    ) -> Result<Self, RelayError>
+    ) -> Result<Self, ServerError>
     where
         C: AsRef<Path>,
         K: AsRef<Path>,
@@ -73,7 +73,7 @@ impl Relay {
         })
     }
 
-    /// Create a QUIC [Relay] using a Builder pattern
+    /// Create a QUIC [Server] using a Builder pattern
     #[builder(start_fn = quic_builder, finish_fn = build)]
     pub async fn new_quic<C, K>(
         #[builder(into, setters(doc {
@@ -95,7 +95,7 @@ impl Relay {
             /// The Path to the key file.
         }))]
         key: K,
-    ) -> Result<Self, RelayError>
+    ) -> Result<Self, ServerError>
     where
         C: AsRef<Path>,
         K: AsRef<Path>,

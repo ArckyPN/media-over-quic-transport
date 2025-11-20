@@ -1,12 +1,12 @@
 use {
-    crate::{macro_helper::impl_from_msg_error, transport::EndpointError},
+    crate::{macro_helper::impl_from_msg_error, transport::error::EndpointError},
     snafu::Snafu,
 };
 
 /// [Relay](crate::transport::Relay) Error
 #[derive(Debug, Snafu, Clone, PartialEq, Eq)]
 #[snafu(visibility(pub), module(ctx))]
-pub enum RelayError {
+pub enum ServerError {
     /// unable to load TLS files
     #[snafu(display("failed to load TLS files: {msg}"))]
     TlsLoad { msg: String },
@@ -17,7 +17,7 @@ pub enum RelayError {
 }
 
 impl_from_msg_error! {
-    RelayError = [
+    ServerError = [
         TlsLoad => webtransport::tls::error::PemLoadError
     ]
 }

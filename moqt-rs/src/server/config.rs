@@ -14,7 +14,7 @@ use {
 /// - [bon] Builder pattern
 /// - [serde] Serialize and Deserialize
 #[derive(Debug, Parser, Deserialize, Serialize, Builder, Clone)]
-pub struct RelayConfig {
+pub struct ServerConfig {
     /// The relay will listen on this address
     #[arg(short = 'b', long = "bind")]
     #[builder(into, setters(doc {
