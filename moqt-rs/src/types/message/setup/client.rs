@@ -21,6 +21,55 @@ pub struct ClientSetup {
     pub parameters: ClientSetupParameters,
 }
 
+impl ClientSetup {
+    /// Selects the highest supported version. return None if no versions match.
+    ///
+    /// # Example
+    ///
+    /// The idea is that a Relay receives the [ClientSetup] message and
+    /// then calls this function to select the negotiated version:
+    ///
+    /// ```rust,ignore
+    /// // server.rs
+    /// const SUPPORTED_VERSIONS: &[u32] = &[
+    ///     1, 2, 3
+    /// ];
+    /// let msg: ClientSetup = recv(); // example: msg.supported_version = [1, 2]
+    ///
+    /// let version = msg.supported_version(SUPPORTED_VERSIONS);
+    /// assert_eq!(version, Some(2));
+    ///
+    /// // send negotiated version to client
+    /// let msg = ServerSetup::builder().version(version).build();
+    /// send(msg);
+    /// ```
+    pub fn supported_version<I, T>(&self, server_versions: I) -> Option<x!(i)>
+    where
+        I: IntoIterator<Item = T>,
+        T: Into<x!(i)>,
+    {
+        let mut selected_version: Option<x!(i)> = None;
+
+        for v in server_versions {
+            let server_version = v.into();
+            for client_version in &self.supported_versions {
+                if server_version == *client_version {
+                    match &selected_version {
+                        Some(v) => {
+                            if *v < server_version {
+                                selected_version = Some(server_version.clone())
+                            }
+                        }
+                        None => selected_version = Some(server_version.clone()),
+                    }
+                }
+            }
+        }
+
+        selected_version
+    }
+}
+
 impl<S: client_setup_builder::State> ClientSetupBuilder<S> {
     /// Adds a supported Version to [ClientSetup].
     pub fn version<V>(mut self, v: V) -> Self
@@ -45,13 +94,15 @@ impl<S: client_setup_builder::State> ClientSetupBuilder<S> {
 
 #[cfg(test)]
 mod tests {
-    use crate::test_helper::{TestData, varint_struct_test};
-
-    use super::*;
+    use {
+        super::*,
+        crate::test_helper::{TestData, varint_struct_test},
+        pretty_assertions::assert_eq,
+    };
 
     impl TestData for ClientSetup {
         fn test_data() -> Vec<(Self, Vec<u8>, usize)> {
-            let v1 = Self::builder().versions(&[1u8, 2u8]).build();
+            let v1 = Self::builder().versions([1u8, 2u8]).build();
             let b1 = vec![
                 2, // num of supported version
                 1, 2, // supported versions
@@ -79,4 +130,17 @@ mod tests {
     }
 
     varint_struct_test!(ClientSetup);
+
+    #[test]
+    fn supported_version_test() {
+        let supported_versions = &[1u8, 2u8, 3u8];
+        let msg = ClientSetup::builder().versions([1u8, 2u8]).build();
+        let valid = msg.supported_version(supported_versions);
+        assert_eq!(valid, Some(2u8.into()));
+
+        let supported_versions = &[3u8];
+        let msg = ClientSetup::builder().versions([1u8, 2u8]).build();
+        let invalid = msg.supported_version(supported_versions);
+        assert!(invalid.is_none());
+    }
 }
