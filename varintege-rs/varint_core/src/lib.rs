@@ -24,7 +24,7 @@ where
     Self: std::marker::Sized,
 {
     /// The error type.
-    type Error: std::fmt::Debug;
+    type Error: core::error::Error;
 
     /// Encode the data for transmission.
     ///
