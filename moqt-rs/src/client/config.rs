@@ -7,7 +7,7 @@ use {
 };
 
 #[derive(Debug, Parser, Deserialize, Serialize, Builder, Clone)]
-pub struct PublisherConfig {
+pub struct ClientConfig {
     /// The relay URL to connect to
     #[arg(short = 'r', long = "relay")]
     #[builder(into, setters(doc {

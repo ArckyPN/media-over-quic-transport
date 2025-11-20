@@ -1,15 +1,17 @@
 use {
-    super::{Connection, Publisher, PublisherConfig, PublisherError, ctx},
-    crate::Protocol,
+    super::{Client, ClientConfig, ClientError, Connection, ctx},
+    crate::{ControlStream, Protocol},
     bon::bon,
     snafu::ResultExt,
+    tracing::debug,
     webtransport::endpoint::IntoConnectOptions,
 };
 
 #[bon]
-impl Publisher {
+impl Client {
     /// Create a [Publisher] using a [PublisherConfig]
-    pub async fn new(config: PublisherConfig) -> Result<Self, PublisherError> {
+    #[tracing::instrument]
+    pub async fn new(config: ClientConfig) -> Result<Self, ClientError> {
         match &config.protocol {
             Protocol::Quic => Self::quic_builder().connect(config.relay).build().await,
             Protocol::WebTransport => {
@@ -30,7 +32,7 @@ impl Publisher {
             /// The Endpoint will connect this WebTransport server.
         }))]
         connect: O,
-    ) -> Result<Self, PublisherError>
+    ) -> Result<Self, ClientError>
     where
         O: IntoConnectOptions,
     {
@@ -41,10 +43,17 @@ impl Publisher {
             .build()
             .await
             .context(ctx::ConnectionSnafu)?;
+        debug!("connection established");
 
-        // TODO perform handshake and set control stream on Self
+        let control_stream = ControlStream::open(&transport)
+            .await
+            .context(ctx::ControlStreamSnafu)?;
+        debug!("handshake successful, ControlStream is established");
 
-        Ok(Self { transport })
+        Ok(Self {
+            transport,
+            control_stream,
+        })
     }
 
     /// Create a QUIC [Publisher] using a Builder pattern
@@ -56,7 +65,7 @@ impl Publisher {
             /// The Endpoint will connect this QUIC server.
         }))]
         _connect: O,
-    ) -> Result<Self, PublisherError>
+    ) -> Result<Self, ClientError>
     where
         O: IntoConnectOptions,
     {
