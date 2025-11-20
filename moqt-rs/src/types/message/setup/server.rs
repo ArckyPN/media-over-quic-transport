@@ -1,4 +1,4 @@
-use {crate::types::ServerSetupParameters, bon::bon, varint::prelude::*};
+use {crate::types::ServerSetupParameters, bon::bon, funty::Unsigned, varint::prelude::*};
 
 /// ## ServerSetup
 ///
@@ -14,6 +14,15 @@ pub struct ServerSetup {
     selected_version: x!(i),
 
     parameters: ServerSetupParameters,
+}
+
+impl ServerSetup {
+    pub fn selected_version<U>(&self) -> U
+    where
+        U: Unsigned,
+    {
+        self.selected_version.number()
+    }
 }
 
 #[bon]
