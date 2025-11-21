@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use varint::varint_enum;
 
 varint_enum! {
@@ -109,6 +111,34 @@ varint_enum! {
 
         /// The AUTHORITY value is syntactically invalid.
         MalformedAuthority = 0x1A,
+    }
+}
+
+impl Display for Termination {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::NoError => "no error occurred",
+            Self::InternalError => "internal error",
+            Self::Unauthorized => "peer was not authorized",
+            Self::ProtocolViolation => "MOQT protocol was violated",
+            Self::InvalidRequestID => "invalid request ID",
+            Self::DuplicateTrackAlias => "duplicate track alias used",
+            Self::KeyValueFormattingError => "invalid parameter formatting",
+            Self::TooManyRequests => "too many requests",
+            Self::InvalidPath => "invalid PATH parameter",
+            Self::MalformedPath => "malformed PATH parameter",
+            Self::GoAwayTimeout => "peer took too long to follow GOAWAY instruction",
+            Self::ControlMessageTimeout => "peer took too long to respond",
+            Self::DataStreamTimeout => "peer took too long to send data",
+            Self::AuthTokenCacheOverflow => "authorization token cache is full",
+            Self::DuplicateAuthTokenAlias => "duplicate authorization token alias",
+            Self::VersionNegotiationFailed => "failed negotiate a common version",
+            Self::MalformedAuthToken => "malformed authorization token",
+            Self::UnknownAuthTokenAlias => "unknown authorization token alias",
+            Self::ExpiredAuthToken => "authorization token expired",
+            Self::InvalidAuthority => "invalid AUTHORITY parameter",
+            Self::MalformedAuthority => "malformed AUTHORITY parameter",
+        })
     }
 }
 
