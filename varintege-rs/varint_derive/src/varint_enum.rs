@@ -34,6 +34,26 @@ impl ToTokens for VarIntEnum {
         quote! { enum }.to_tokens(tokens);
         self.name.to_tokens(tokens);
         Brace::default().surround(tokens, |f| self.variants.to_tokens(f));
+
+        quote! { impl }.to_tokens(tokens);
+        self.name.to_tokens(tokens);
+        let match_arms = self
+            .variants
+            .iter()
+            .map(|v| v.key_getter())
+            .collect::<Vec<_>>();
+        Brace::default().surround(tokens, |f| {
+            quote! {
+                    pub fn key(&self) -> u32 {
+                        match self {
+                            #(
+                                Self::#match_arms,
+                            )*
+                        }
+                    }
+            }
+            .to_tokens(f);
+        });
     }
 }
 
@@ -168,6 +188,27 @@ struct Variant {
     name: Ident,
     value: Lit,
     fields: Option<VariantFields>,
+}
+
+impl Variant {
+    fn key_getter(&self) -> TokenStream {
+        let name = &self.name;
+        let value = &self.value;
+        if let Some(fields) = &self.fields {
+            match fields {
+                VariantFields::Struct(_) => quote! {
+                    #name { .. } => #value
+                },
+                VariantFields::Tuple(_) => quote! {
+                    #name(_) => #value
+                },
+            }
+        } else {
+            quote! {
+                #name => #value
+            }
+        }
+    }
 }
 
 impl ToTokens for Variant {
