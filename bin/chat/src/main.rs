@@ -33,5 +33,10 @@ async fn main() -> Result<(), Whatever> {
         .await
         .whatever_context("failed to build publisher")?;
 
+    publisher
+        .subscribe(["chat.bob"], "text", None)
+        .await
+        .whatever_context("failed to subscribe")?;
+
     Ok(())
 }

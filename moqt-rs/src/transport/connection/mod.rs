@@ -2,11 +2,14 @@ mod builder;
 mod error;
 
 pub use error::ConnectionError;
-use snafu::ResultExt;
 
 use {
     super::{RecvStream, SendStream},
+    crate::types::error_code::Termination,
+    core::net::SocketAddr,
     error::ctx,
+    snafu::ResultExt,
+    tracing::trace,
 };
 
 /// Wrapper Type around [QUIC](quic::Connection) and
@@ -32,7 +35,7 @@ impl Connection {
             Self::Quic(conn) => {
                 let tx = conn.open_uni().await.context(ctx::QuicConnectionSnafu)?;
 
-                // TODO log
+                trace!("opened unidirectional stream");
 
                 SendStream::Quic(tx)
             }
@@ -44,7 +47,7 @@ impl Connection {
                     .await
                     .context(ctx::WebTransportOpeningStreamSnafu)?;
 
-                // TODO log
+                trace!("opened unidirectional stream");
 
                 SendStream::WebTransport(tx)
             }
@@ -58,7 +61,7 @@ impl Connection {
             Self::Quic(conn) => {
                 let rx = conn.accept_uni().await.context(ctx::QuicConnectionSnafu)?;
 
-                // TODO log
+                trace!("accepted unidirectional stream");
 
                 RecvStream::Quic(rx)
             }
@@ -68,7 +71,7 @@ impl Connection {
                     .await
                     .context(ctx::WebTransportConnectionSnafu)?;
 
-                // TODO log
+                trace!("accepted unidirectional stream");
 
                 RecvStream::WebTransport(rx)
             }
@@ -82,7 +85,7 @@ impl Connection {
             Self::Quic(conn) => {
                 let (tx, rx) = conn.open_bi().await.context(ctx::QuicConnectionSnafu)?;
 
-                // TODO log
+                trace!("opened bidirectional stream");
 
                 (SendStream::Quic(tx), RecvStream::Quic(rx))
             }
@@ -94,7 +97,7 @@ impl Connection {
                     .await
                     .context(ctx::WebTransportOpeningStreamSnafu)?;
 
-                // TODO log
+                trace!("opened bidirectional stream");
 
                 (SendStream::WebTransport(tx), RecvStream::WebTransport(rx))
             }
@@ -108,7 +111,7 @@ impl Connection {
             Self::Quic(conn) => {
                 let (tx, rx) = conn.accept_bi().await.context(ctx::QuicConnectionSnafu)?;
 
-                // TODO log
+                trace!("accepted bidirectional stream");
 
                 (SendStream::Quic(tx), RecvStream::Quic(rx))
             }
@@ -118,10 +121,24 @@ impl Connection {
                     .await
                     .context(ctx::WebTransportConnectionSnafu)?;
 
-                // TODO log
+                trace!("accepted bidirectional stream");
 
                 (SendStream::WebTransport(tx), RecvStream::WebTransport(rx))
             }
         })
+    }
+
+    pub fn remote_addr(&self) -> SocketAddr {
+        match self {
+            Self::Quic(conn) => conn.remote_address(),
+            Self::WebTransport(conn) => conn.remote_address(),
+        }
+    }
+
+    pub fn close(&self, code: Termination) {
+        match self {
+            Self::Quic(conn) => conn.close(code.key().into(), code.to_string().as_bytes()),
+            Self::WebTransport(conn) => conn.close(code.key().into(), code.to_string().as_bytes()),
+        }
     }
 }

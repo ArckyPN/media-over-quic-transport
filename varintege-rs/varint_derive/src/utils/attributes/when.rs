@@ -3,6 +3,7 @@ use proc_macro2::Span;
 use quote::ToTokens;
 use syn::{Expr, Ident, Lit, LitInt, spanned::Spanned};
 
+#[derive(Clone)]
 pub struct When {
     pub field: Ident,
     pub values: Vec<Lit>,

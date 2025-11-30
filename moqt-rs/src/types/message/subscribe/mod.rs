@@ -3,6 +3,8 @@ mod ok;
 mod un;
 mod update;
 
+use crate::types::config::SubscribeConfig;
+
 pub use {error::SubscribeError, ok::SubscribeOk, un::Unsubscribe, update::SubscribeUpdate};
 
 use {
@@ -52,6 +54,7 @@ use {
 #[derive(Debug, VarInt, PartialEq, Clone)]
 #[varint::draft_ref(v = 14)]
 #[varint(parameters(auth_token, delivery_timeout))]
+//
 pub struct Subscribe {
     /// ## Request ID
     pub request_id: x!(i),
@@ -254,6 +257,51 @@ impl Subscribe {
             start_location,
             end_group,
             parameters,
+        }
+    }
+
+    #[builder(finish_fn = build)]
+    pub fn from_config(
+        #[builder(into, setters(
+            name = id,
+            doc {
+                /// Sets the request ID on [Subscribe].
+            }
+        ))]
+        request_id: x!(i),
+
+        #[builder(into, setters(
+            doc {
+                /// Sets the track namespace on [Subscribe].
+            }
+        ))]
+        namespace: Namespace,
+
+        #[builder(into, setters(
+            doc {
+                /// Sets the track name on [Subscribe].
+            }
+        ))]
+        name: Name,
+
+        #[builder(setters(
+            doc {
+                /// Sets the remaining fields on [Subscribe].
+            }
+        ))]
+        config: SubscribeConfig,
+    ) -> Self {
+        Self {
+            request_id,
+            namespace,
+            name,
+            subscriber_priority: config.subscriber_priority,
+            group_order: config.group_order,
+            forward: config.forward,
+            filter_type: config.filter_type,
+            start_location: config.start_location,
+            end_group: config.end_group,
+            parameters: config.parameters,
         }
     }
 }

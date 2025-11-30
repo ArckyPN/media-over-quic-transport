@@ -40,25 +40,6 @@ mod sub {
                     ])
                 })
             }
-
-            #[derive(darling::FromMeta)]
-            pub struct Parameters {
-                $(
-                    #[darling(default)]
-                    pub(crate) $names: bool,
-                )*
-            }
-
-            impl $crate::structs::Getter for Parameters {
-                fn get(&self, s: &str) -> bool {
-                    match s {
-                        $(
-                            stringify!($names) => self.$names,
-                        )*
-                        _ => unreachable!("you should use the key of the parameter_map() as accessors")
-                    }
-                }
-            }
         };
     }
 

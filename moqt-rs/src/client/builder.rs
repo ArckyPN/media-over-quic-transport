@@ -1,8 +1,9 @@
 use {
     super::{Client, ClientConfig, ClientError, Connection, ctx},
-    crate::{ControlStream, Protocol},
+    crate::{ControlStream, Protocol, types::RequestId},
     bon::bon,
     snafu::ResultExt,
+    tokio::sync::RwLock,
     tracing::debug,
     webtransport::endpoint::IntoConnectOptions,
 };
@@ -48,11 +49,11 @@ impl Client {
         let control_stream = ControlStream::open(&transport)
             .await
             .context(ctx::ControlStreamSnafu)?;
-        debug!("handshake successful, ControlStream is established");
 
         Ok(Self {
             transport,
             control_stream,
+            request_id: RwLock::new(RequestId::new_client()),
         })
     }
 

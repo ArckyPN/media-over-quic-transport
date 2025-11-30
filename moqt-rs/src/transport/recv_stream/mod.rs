@@ -1,6 +1,7 @@
 mod error;
 
 pub use error::{DecodeError, RecvError};
+use snafu::OptionExt;
 use varint::{VarInt, core::ReferenceReader};
 
 use crate::transport::PACKET_SIZE;
@@ -30,18 +31,22 @@ impl RecvStream {
     }
 
     #[tracing::instrument(skip(self), err)]
-    pub async fn recv<M>(&mut self) -> Result<M, DecodeError>
+    pub async fn recv<V>(&mut self) -> Result<V, DecodeError>
     where
-        M: VarInt,
+        V: VarInt,
     {
         let mut buf = vec![0; PACKET_SIZE];
-        let len = self.read(&mut buf).await.context(dec_ctx::RecvSnafu)?.expect("# TODO what exactly means \"stream is finished\" closed or done sending current packet?");
+        let len = self
+            .read(&mut buf)
+            .await
+            .context(dec_ctx::RecvSnafu)?
+            .context(dec_ctx::EndOfStreamSnafu)?;
         let buf = &buf[..len];
 
         let mut reader = ReferenceReader::new(buf);
 
         let (msg, _bits) =
-            M::decode(&mut reader, Some(len * 8)).map_err(|err| DecodeError::VarInt {
+            V::decode(&mut reader, Some(len * 8)).map_err(|err| DecodeError::VarInt {
                 cause: err.to_string(),
             })?;
 

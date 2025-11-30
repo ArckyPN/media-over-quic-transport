@@ -20,4 +20,7 @@ pub enum DecodeError {
 
     #[snafu(display("failed to receive data"))]
     Recv { source: RecvError },
+
+    #[snafu(display("unexpected end of stream reached"))]
+    EndOfStream,
 }

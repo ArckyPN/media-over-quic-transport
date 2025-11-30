@@ -68,7 +68,7 @@ mod sub {
             mod tests {
                 use super::*;
 
-                use crate::test_helper::{TestData, varint_struct_test};
+                use $crate::test_helper::{TestData, varint_struct_test};
 
                 impl TestData for $name {
                     fn test_data() -> Vec<(Self, Vec<u8>, usize)> {

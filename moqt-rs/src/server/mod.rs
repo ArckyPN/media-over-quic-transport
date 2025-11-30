@@ -8,8 +8,14 @@ pub use {
 };
 
 use {
-    crate::transport::Endpoint,
+    crate::{
+        Session, error::ControlStreamError, session::SessionHandle, transport::Endpoint,
+        types::error_code::Termination,
+    },
+    core::net::SocketAddr,
+    dashmap::DashMap,
     error::ctx,
+    snafu::ResultExt,
     tracing::{error, info},
 };
 
@@ -21,7 +27,10 @@ use {
 #[derive(Debug)]
 pub struct Server {
     transport: Endpoint,
+    sessions: DashMap<SocketAddr, SessionHandle>,
+    // TODO add Client connections to other Relays/(ControlTower?) to query them for Tracks this Relay doesn't know
 }
+// TODO add HTTP server for dashboard and outside control, like shutdown, etc.
 
 impl Server {
     /// Launches the [Relay] making it run until
@@ -35,21 +44,72 @@ impl Server {
         );
 
         loop {
-            let conn = match self.transport.accept().await {
-                Ok(con) => con,
+            tokio::select! {
+                biased;
+                res = self.accept_session() => {
+                    match res {
+                        Ok(_) => info!("accepted new session"),
+                        Err(_) => error!("failed to accept new session")
+                    }
+                }
+                // res = self.recv_session_messages() => {
+                //     if let Err(_err) = res {
+                //         todo!("what to do when server runs into an error? shouldn't happen, so panic?")
+                //     }
+                // }
+                // TODO check sessions channels and handle them
+            }
+        }
+    }
+
+    #[tracing::instrument(skip(self), err)]
+    async fn accept_session(&self) -> Result<(), ServerError> {
+        let conn = self.transport.accept().await.context(ctx::EndpointSnafu)?;
+
+        let control_stream = match crate::ControlStream::accept(&conn).await {
+            Ok(cs) => cs,
+            Err(source @ ControlStreamError::NoSupportedVersion { .. }) => {
+                error!("unable to negotiate a version, dropping connection...");
+                conn.close(Termination::VersionNegotiationFailed);
+                return Err(ServerError::ControlStream { source });
+            }
+            Err(source) => {
+                error!(%source, "failed to establish ControlStream, dropping connection...");
+                return Err(ServerError::ControlStream { source });
+            }
+        };
+
+        // TODO I need a way to poll the session to
+        // [ ] exchange Messages, like
+        //      [ ] forcing a Goaway to all/specific sessions
+        //      [ ] collecting announced Tracks
+        //      [ ] relaying Tracks to sessions
+        // [ ] remove session and their associated announced/subscribed Tracks when they error
+        // [ ] more?
+        let addr = conn.remote_addr();
+        let handle = Session::spawn(conn, control_stream);
+
+        self.sessions.insert(addr, handle);
+        Ok(())
+    }
+
+    async fn recv_session_messages(&self) -> Result<(), ServerError> {
+        let mut remove = Vec::new();
+
+        for session in &self.sessions {
+            let (addr, session) = session.pair();
+            let msg = match session.recv().await {
+                Ok(Some(msg)) => msg,
+                Ok(None) => continue,
                 Err(err) => {
-                    error!(%err, "failed to accept incoming session");
+                    error!("session ran into an error: {}", err);
+                    remove.push(addr.to_owned());
                     continue;
                 }
             };
 
-            // TODO tokio spawn move conn to session and and do the handling there
-            let control_stream = crate::ControlStream::accept(&conn)
-                .await
-                .expect("ControlStream failed");
-
-            // TODO handle session
-            // TODO session type, which handles the handshake on stuff
+            todo!("handle session message: {:?}", msg);
         }
+        Ok(())
     }
 }

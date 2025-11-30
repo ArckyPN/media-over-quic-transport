@@ -20,7 +20,7 @@ pub mod error {
         connection::ConnectionError,
         endpoint::EndpointError,
         recv_stream::{DecodeError, RecvError},
-        send_stream::SendError,
+        send_stream::{EncodeError, SendError},
     };
 }
 

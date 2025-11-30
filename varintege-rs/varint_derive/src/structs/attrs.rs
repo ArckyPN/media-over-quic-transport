@@ -1,19 +1,16 @@
 use std::collections::HashMap;
 
 use convert_case::{Case, Casing};
-use darling::FromAttributes;
-use proc_macro_error2::abort_call_site;
+use proc_macro_error2::{abort, abort_call_site};
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
-use syn::{Attribute, FieldsNamed, Ident, LitStr, Meta, Path};
+use quote::{ToTokens, format_ident, quote};
+use syn::{
+    Attribute, Expr, FieldsNamed, Ident, LitStr, Meta, Path, parse::Parse, spanned::Spanned,
+};
 
-use crate::crate_name;
+use crate::{ATTRIBUTE, crate_name};
 
 const PARAM_FIELD: &str = "parameters";
-
-pub(crate) trait Getter {
-    fn get(&self, s: &str) -> bool;
-}
 
 // TODO ideally parse this from the actual Parameter enums
 /// # TODO doc for all params
@@ -51,25 +48,68 @@ pub mod general {
     }
 }
 
-#[derive(FromAttributes, Default)]
-#[darling(attributes(varint))]
+#[derive(Default)]
 pub struct StructAttrs {
-    parameters: Option<general::Parameters>,
+    pub parameters: Vec<Ident>,
     // TODO add and_then: Option<Path> (a fn to call after decode to validate the result)
+}
+
+impl Parse for StructAttrs {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let exprs = input.parse_terminated(Expr::parse, Token![,])?;
+
+        let mut this = Self::default();
+        for expr in exprs {
+            match expr {
+                Expr::Call(params) => match params.func.to_token_stream().to_string().as_str() {
+                    PARAM_FIELD => {
+                        this.parameters = params
+                            .args
+                            .iter()
+                            .map(|arg| {
+                                syn::parse::<Ident>(arg.to_token_stream().into()).unwrap_or_else(
+                                    |err| abort!(arg.span(), "Invalid Ident: {}", err),
+                                )
+                            })
+                            .collect::<Vec<_>>()
+                    }
+                    x => abort!(
+                        params.span(),
+                        "unknown ident {x:?}, expected {}",
+                        PARAM_FIELD
+                    ),
+                },
+                _ => abort!(expr.span(), "Unknown attribute, expected {}", PARAM_FIELD,),
+            }
+        }
+
+        Ok(this)
+    }
 }
 
 impl StructAttrs {
     pub fn new(attrs: &[Attribute], fields: &FieldsNamed) -> Self {
-        let attr = match Self::from_attributes(attrs) {
-            Ok(v) => v,
-            Err(err) => abort_call_site!("Invalid Attributes: {}", err),
-        };
+        let attr = Self::from_attributes(attrs);
 
-        if attr.parameters.is_some() && !Self::has_parameters_field(fields) {
+        if !attr.parameters.is_empty() && !Self::has_parameters_field(fields) {
             abort_call_site!("Missing parameters field")
         }
 
         attr
+    }
+
+    fn from_attributes(attrs: &[Attribute]) -> Self {
+        let mut a = Self::default();
+        for attr in attrs {
+            if !attr.path().is_ident(ATTRIBUTE) {
+                continue;
+            }
+            a = match attr.parse_args() {
+                Ok(v) => v,
+                Err(err) => abort!(attr.path().span(), "Attribute Error: {}", err),
+            }
+        }
+        a
     }
 
     fn has_parameters_field(fields: &FieldsNamed) -> bool {
@@ -83,24 +123,20 @@ impl StructAttrs {
         false
     }
 
-    fn quote_params<P>(
+    fn quote_params(
         &self,
         name: &Ident,
-        parameters: &P,
+        parameters: &[Ident],
         parameter_map: &'static HashMap<&'static str, (u32, Vec<String>, String, String)>,
         prefix: &str,
-    ) -> TokenStream
-    where
-        P: Getter,
-    {
+    ) -> TokenStream {
         let varint = crate_name();
 
         let parameter_ty = format_ident!("{prefix}Parameter");
         let fns = parameter_map
             .iter()
-            .map(|(k, (v, docs, variant, ty))| match parameters.get(k) {
-                false => quote! {},
-                true => {
+            .map(|(k, (v, docs, variant, ty))| {
+                if parameters.contains(&format_ident!("{k}")) {
                     let ident = format_ident!("{}", k);
                     let variant = format_ident!("{variant}");
                     let unreachable_literal = LitStr::new(
@@ -121,6 +157,8 @@ impl StructAttrs {
                             })
                         }
                     }
+                } else {
+                    quote! {}
                 }
             })
             .collect::<Vec<_>>();
@@ -210,13 +248,14 @@ impl StructAttrs {
     fn quote_client_setup(&self, name: &Ident) -> TokenStream {
         self.quote_params(
             name,
-            &setup::client::Parameters {
-                path: true,
-                max_request_id: true,
-                auth_token: true,
-                authority: true,
-                moqt_implementation: true,
-            },
+            &[
+                // TODO define properly above
+                format_ident!("path"),
+                format_ident!("max_request_id"),
+                format_ident!("auth_token"),
+                format_ident!("authority"),
+                format_ident!("moqt_implementation"),
+            ],
             setup::client::parameter_map(),
             "ClientSetup",
         )
@@ -225,18 +264,19 @@ impl StructAttrs {
     fn quote_server_setup(&self, name: &Ident) -> TokenStream {
         self.quote_params(
             name,
-            &setup::server::Parameters {
-                max_request_id: true,
-                auth_token: true,
-                max_auth_token_cache_size: true,
-                moqt_implementation: true,
-            },
+            &[
+                // TODO define properly above
+                format_ident!("max_request_id"),
+                format_ident!("auth_token"),
+                format_ident!("max_auth_token_cache_size"),
+                format_ident!("moqt_implementation"),
+            ],
             setup::server::parameter_map(),
             "ServerSetup",
         )
     }
 
-    fn quote_general(&self, name: &Ident, parameters: &general::Parameters) -> TokenStream {
+    fn quote_general(&self, name: &Ident, parameters: &[Ident]) -> TokenStream {
         self.quote_params(name, parameters, general::parameter_map(), "")
     }
 
@@ -245,8 +285,8 @@ impl StructAttrs {
             self.quote_client_setup(name)
         } else if name == "ServerSetup" {
             self.quote_server_setup(name)
-        } else if let Some(parameters) = &self.parameters {
-            self.quote_general(name, parameters)
+        } else if !self.parameters.is_empty() {
+            self.quote_general(name, &self.parameters)
         } else {
             quote! {}
         }

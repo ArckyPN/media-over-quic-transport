@@ -1,7 +1,9 @@
-use url::Url;
-use varint::{VarInt, x};
+use {
+    url::Url,
+    varint::{VarInt, x},
+};
 
-// TODO
+// TODO also breakout Goaway into a dir mod
 pub enum GoawayError {}
 
 /// ## Goaway

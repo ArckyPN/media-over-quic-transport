@@ -3,7 +3,7 @@ use std::fmt::Display;
 use varint::{VarInt, VarIntBytes, x};
 
 /// ## Track Name
-#[derive(Debug, VarInt, PartialEq, Clone)]
+#[derive(Debug, VarInt, PartialEq, Eq, Clone)]
 pub struct Name {
     #[varint(length = x(i))]
     inner: x!(..),

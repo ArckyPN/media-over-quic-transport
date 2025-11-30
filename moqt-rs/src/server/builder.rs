@@ -70,6 +70,7 @@ impl Server {
                 .build()
                 .await
                 .context(ctx::EndpointSnafu)?,
+            sessions: Default::default(),
         })
     }
 
@@ -119,6 +120,7 @@ impl Server {
                 .build()
                 .await
                 .context(ctx::EndpointSnafu)?,
+            sessions: Default::default(),
         })
     }
 }

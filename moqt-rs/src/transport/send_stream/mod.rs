@@ -1,9 +1,9 @@
 mod error;
 
-pub use error::SendError;
+pub use error::{EncodeError, SendError};
 
 use {
-    error::ctx,
+    error::{ctx, enc_ctx},
     snafu::ResultExt,
     varint::{VarInt, Writer, core::ReferenceWriter},
 };
@@ -27,9 +27,8 @@ impl SendStream {
 
     /// Encodes any type implementing [VarInt] and writes it to
     /// the stream.
-    #[tracing::instrument(skip(self, v), err)] // TODO make a trait Message: VarInt, which adds a name() -> &'static string for logging
-    pub async fn send<V>(&mut self, v: V) -> Result<(), SendError>
-    // TODO make a separate EncodeError
+    #[tracing::instrument(skip(self, v), err)]
+    pub async fn send<V>(&mut self, v: V) -> Result<(), EncodeError>
     where
         V: VarInt,
     {
@@ -38,15 +37,16 @@ impl SendStream {
         let _bits = v
             .encode(
                 &mut writer,
-                Some(v.len_bits().map_err(|err| SendError::VarInt {
-                    cause: err.to_string(),
+                Some(v.len_bits().map_err(|err| EncodeError::VarInt {
+                    msg: err.to_string(),
                 })?),
             )
-            .map_err(|err| SendError::VarInt {
-                cause: err.to_string(),
+            .map_err(|err| EncodeError::VarInt {
+                msg: err.to_string(),
             })?;
 
-        self.write(&writer.finish().context(ctx::WriterSnafu)?)
+        self.write(&writer.finish()?)
             .await
+            .context(enc_ctx::SendSnafu)
     }
 }

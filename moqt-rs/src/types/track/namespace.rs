@@ -4,7 +4,7 @@ const MIN_LEN: usize = 1;
 const MAX_LEN: usize = 32;
 
 /// ## Track Namespace
-#[derive(Debug, VarInt, PartialEq, Clone)]
+#[derive(Debug, VarInt, PartialEq, Eq, Clone)]
 pub struct Namespace {
     // TODO how to make sure there are only 1..=32 Tuples?
     // TODO total length should also not exceed 4096 bytes

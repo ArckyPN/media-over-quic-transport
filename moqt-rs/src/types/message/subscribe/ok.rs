@@ -11,7 +11,7 @@ use {
 /// ## SubscribeOk
 ///
 /// Response to a successful [Subscribe](crate::type::message::Subscribe).
-#[derive(Debug, VarInt, PartialEq, Clone)] // TODO needs a custom builder
+#[derive(Debug, VarInt, PartialEq, Clone)]
 #[varint::draft_ref(v = 14)]
 #[varint(parameters(delivery_timeout, max_cache_duration))]
 pub struct SubscribeOk {
@@ -70,7 +70,7 @@ where
     /// Optional setter for [`content_exists`](SubscribeOk::content_exists) and
     /// [`largest_location`](SubscribeOk::largest_location) on [SubscribeOk].
     pub fn with_content<G, O>(
-        mut self,
+        self,
         group: G,
         object: O,
     ) -> SubscribeOkBuilder<SetContentExists<SetLargestLocation<S>>>

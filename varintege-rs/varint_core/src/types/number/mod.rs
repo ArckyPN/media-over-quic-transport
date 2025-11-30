@@ -19,10 +19,10 @@ pub use error::{NumberConversion, NumberError};
 
 pub(super) use error::{ctx, ctx_conv};
 
-const MAX_U6: u64 = (2 << 5) - 1;
-const MAX_U14: u64 = (2 << 13) - 1;
-const MAX_U30: u64 = (2 << 29) - 1;
-const MAX_U62: u64 = (2 << 61) - 1;
+const MAX_U6: u64 = (1 << 6) - 1;
+const MAX_U14: u64 = (1 << 14) - 1;
+const MAX_U30: u64 = (1 << 30) - 1;
+const MAX_U62: u64 = (1 << 62) - 1;
 
 /// This is the quintessential
 /// `VarInt` type of this crate. In the QUIC
@@ -44,6 +44,12 @@ pub struct Number {
 }
 
 impl Number {
+    /// The smallest possible Value.
+    pub const MIN: u64 = 0;
+
+    /// The largest possible Value.
+    pub const MAX: u64 = MAX_U62;
+
     /// Creates a new VarInt.
     ///
     /// This function only accept `u8`, `u16`

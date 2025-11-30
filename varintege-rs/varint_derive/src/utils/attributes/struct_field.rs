@@ -1,6 +1,6 @@
 use proc_macro_error2::abort;
 use quote::ToTokens;
-use syn::{Attribute, Expr, Ident, Type, parse::Parse, spanned::Spanned};
+use syn::{Attribute, Expr, Type, parse::Parse, spanned::Spanned};
 
 use super::When;
 use crate::ATTRIBUTE;
@@ -9,7 +9,7 @@ const LENGTH_ATTR: &str = "length";
 const WHEN_ATTR: &str = "when";
 const COUNT_ATTR: &str = "count";
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct StructFieldAttributes {
     /// length in bits of the field
     pub length: Option<Type>,
@@ -50,7 +50,7 @@ impl Parse for StructFieldAttributes {
                     }
                     _ => abort!(call.span(), "unknown call, expected {}", WHEN_ATTR),
                 },
-                _ => abort!(expr.span(), "only assigns are supported"),
+                _ => abort!(expr.span(), "only assigns and calls are supported"),
             }
         }
 
@@ -83,22 +83,5 @@ impl StructFieldAttributes {
             return this;
         }
         Self::default()
-    }
-
-    pub fn validate_when(&self, previous_fields: &[Ident]) {
-        let Some(when) = &self.when else {
-            return;
-        };
-
-        for pf in previous_fields {
-            if when.field == *pf {
-                return;
-            }
-        }
-        abort!(
-            when.field.span(),
-            "Field {} does not exist as a previous field",
-            when.field
-        )
     }
 }

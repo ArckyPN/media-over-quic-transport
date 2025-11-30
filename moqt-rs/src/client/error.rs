@@ -1,5 +1,7 @@
 use {
-    crate::{error::ControlStreamError, transport::error::ConnectionError},
+    crate::{
+        error::ControlStreamError, transport::error::ConnectionError, types::error::RequestIdError,
+    },
     snafu::Snafu,
 };
 
@@ -14,4 +16,7 @@ pub enum ClientError {
 
     #[snafu(display("client's ControlStream ran into an error"))]
     ControlStream { source: ControlStreamError },
+
+    #[snafu(display("maximum request ID reached"))]
+    RequestLimitReached { source: RequestIdError },
 }

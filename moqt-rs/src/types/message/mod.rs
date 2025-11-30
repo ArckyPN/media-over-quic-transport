@@ -13,25 +13,34 @@ mod subscribe;
 mod subscribe_namespace;
 mod track_status;
 
-pub use fetch::{Fetch, FetchCancel, FetchError, FetchOk};
-pub use go_away::Goaway;
-pub use max_request_id::MaxRequestId;
-pub use publish::{Publish, PublishDone, PublishError, PublishOk};
-pub use publish_namespace::{
-    PublishNamespace, PublishNamespaceCancel, PublishNamespaceDone, PublishNamespaceError,
-    PublishNamespaceOk,
+pub use {
+    fetch::{Fetch, FetchCancel, FetchError, FetchOk},
+    go_away::Goaway,
+    max_request_id::MaxRequestId,
+    publish::{Publish, PublishDone, PublishError, PublishOk},
+    publish_namespace::{
+        PublishNamespace, PublishNamespaceCancel, PublishNamespaceDone, PublishNamespaceError,
+        PublishNamespaceOk,
+    },
+    requests_blocked::RequestsBlocked,
+    setup::{ClientSetup, ServerSetup},
+    subscribe::{Subscribe, SubscribeError, SubscribeOk, SubscribeUpdate, Unsubscribe},
+    subscribe_namespace::{
+        SubscribeNamespace, SubscribeNamespaceError, SubscribeNamespaceOk, UnsubscribeNamespace,
+    },
+    track_status::{TrackStatus, TrackStatusError, TrackStatusOk},
 };
-pub use requests_blocked::RequestsBlocked;
-pub use setup::{ClientSetup, ServerSetup};
-pub use subscribe::{Subscribe, SubscribeError, SubscribeOk, SubscribeUpdate, Unsubscribe};
-pub use subscribe_namespace::{
-    SubscribeNamespace, SubscribeNamespaceError, SubscribeNamespaceOk, UnsubscribeNamespace,
-};
-pub use track_status::{TrackStatus, TrackStatusError, TrackStatusOk};
 
-use varint::varint_enum;
+/// Message Configs
+///
+/// This module contains custom Configs with Builders for
+/// more control over ControlMessages.
+pub mod config {
+    // TODO export all configs here
+    // pub use super::subscribe::SubscribeConfig;
+}
 
-varint_enum! {
+varint::varint_enum! {
     length {
         tuple[0] = x(16)
     }
@@ -107,7 +116,7 @@ mod tests {
             .concat();
             let l1 = b1.len() * 8;
 
-            let v2 = Self::ClientSetup(ClientSetup::builder().versions(&[1u8, 2u8, 3u8]).build());
+            let v2 = Self::ClientSetup(ClientSetup::builder().versions([1u8, 2u8, 3u8]).build());
             let b2 = vec![
                 0x20, // Client Setup
                 0,    // payload length

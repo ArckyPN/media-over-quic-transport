@@ -1,17 +1,29 @@
 //! Contains all basic MOQT Types defined in the the Draft
 
+pub mod config;
 pub mod error_code;
 pub mod message;
-pub mod misc;
+mod misc;
 mod parameter;
+mod request_id;
 mod track;
 
-// TODO export types
 pub use {
+    misc::{
+        AliasType, ContentExists, EndOfTrack, FetchType, FilterType, Forward, GroupOrder,
+        JoiningFetch, Location, ReasonPhrase, StandaloneFetch,
+    },
     parameter::{
-        ClientSetupParameter, ClientSetupParameterError, ClientSetupParameters, Parameter,
-        ParameterError, Parameters, ServerSetupParameter, ServerSetupParameterError,
+        ClientSetupParameter, ClientSetupParameters, Parameter, Parameters, ServerSetupParameter,
         ServerSetupParameters, Token,
     },
+    request_id::RequestId,
     track::{Name, Namespace},
 };
+
+pub mod error {
+    pub use super::{
+        parameter::{ClientSetupParameterError, ParameterError, ServerSetupParameterError},
+        request_id::RequestIdError,
+    };
+}

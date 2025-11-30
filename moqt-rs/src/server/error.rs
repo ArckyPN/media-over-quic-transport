@@ -1,5 +1,9 @@
 use {
-    crate::{macro_helper::impl_from_msg_error, transport::error::EndpointError},
+    crate::{
+        error::ControlStreamError,
+        macro_helper::impl_from_msg_error,
+        transport::error::{ConnectionError, EndpointError},
+    },
     snafu::Snafu,
 };
 
@@ -14,6 +18,10 @@ pub enum ServerError {
     /// QUIC or WebTransport Error
     #[snafu(display("protocol error"))]
     Endpoint { source: EndpointError },
+
+    /// ControlStream Error
+    #[snafu(display("failed to establish the ControlStream"))]
+    ControlStream { source: ControlStreamError },
 }
 
 impl_from_msg_error! {
